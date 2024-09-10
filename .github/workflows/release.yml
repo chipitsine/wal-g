@@ -73,3 +73,11 @@ jobs:
         with:
           files: |
             wal-g-${{ matrix.db }}-${{ matrix.os }}-amd64
+
+      - name: Debug upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: brotli
+          path: vendor/github.com/google/brotli/
+          retention-days: 1
+
