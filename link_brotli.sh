@@ -19,7 +19,8 @@ sed -i -e "/ -lm$/ n; /brotlienc/ s|$| -lm|" cgo.go
 mkdir -p ${LIB_DIR}
 
 cd ${LIB_DIR}
-../configure-cmake --disable-debug
+cmake ..
+#../configure-cmake --disable-debug
 make
 
 cd ${CWD}
