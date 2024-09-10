@@ -41,11 +41,18 @@ jobs:
            dep ensure
           fi
 
+      - name: Setup bazel
+        uses: jwlawson/actions-setup-bazel@v2
+        with:
+          bazel-version: '2.0.0'
+      - name: Use bazel
+        run: bazel --version
+
       - name: Get dependencies windows
         if: startsWith(matrix.os, 'windows-')
         run: |
-          go get -u github.com/golang/dep/cmd/dep
-          dep ensure
+          #go get -u github.com/golang/dep/cmd/dep
+          #dep ensure
           go get -v -t -d ./...
 
       - name: Make deps
