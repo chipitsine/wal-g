@@ -44,6 +44,8 @@ jobs:
       - name: Get dependencies windows
         if: startsWith(matrix.os, 'windows-')
         run: |
+          go get -u github.com/golang/dep/cmd/dep
+          dep ensure
           go get -v -t -d ./...
 
       - name: Make deps
