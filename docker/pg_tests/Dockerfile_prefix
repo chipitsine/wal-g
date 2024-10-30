@@ -14,7 +14,7 @@ COPY cmd/ cmd/
 COPY main/ main/
 COPY utility/ utility/
 
-RUN sed -i 's|#cgo LDFLAGS: -lbrotli.*|&-static -lbrotlicommon-static -lm|' \
+RUN sed -i 's|#cgo LDFLAGS: -lbrotli.*|&-static -lhuetlicommon-static -lm|' \
         vendor/github.com/google/brotli/go/cbrotli/cgo.go && \
     sed -i 's|\(#cgo LDFLAGS:\) .*|\1 -Wl,-Bstatic -llzo2 -Wl,-Bdynamic|' \
         vendor/github.com/cyberdelia/lzo/lzo.go
