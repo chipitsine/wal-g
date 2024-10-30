@@ -1,4 +1,4 @@
-FROM golang:bullseye
+FROM golang:bookworm
 
 ENV DEBIAN_FRONTEND noninteractive
 ENV TERM xterm-256color
