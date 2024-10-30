@@ -4,7 +4,8 @@ WORKDIR /go/src/github.com/wal-g/wal-g
 
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends --no-install-suggests \
-    liblzo2-dev libbrotli-dev
+    liblzo2-dev
+#    liblzo2-dev libbrotli-dev
 
 COPY go.mod go.mod
 COPY vendor/ vendor/
