@@ -1,5 +1,5 @@
 diff --git a/CMakeLists.txt b/CMakeLists.txt
-index 7389560..04d180a 100644
+index 7389560..73eeee7 100644
 --- a/CMakeLists.txt
 +++ b/CMakeLists.txt
 @@ -92,6 +92,10 @@ set(BROTLI_LIBRARIES_CORE brotlienc brotlidec brotlicommon)
@@ -25,3 +25,13 @@ index 7389560..04d180a 100644
  # Older CMake versions does not understand INCLUDE_DIRECTORIES property.
  include_directories(${BROTLI_INCLUDE_DIRS})
  
+@@ -143,6 +152,9 @@ if(NOT BROTLI_EMSCRIPTEN)
+   target_link_libraries(brotlienc brotlicommon)
+ endif()
+ 
++target_link_libraries(brotlidec-static brotlicommon-static)
++target_link_libraries(brotlienc-static brotlicommon-static)
++
+ # For projects stuck on older versions of CMake, this will set the
+ # BROTLI_INCLUDE_DIRS and BROTLI_LIBRARIES variables so they still
+ # have a relatively easy way to use Brotli:
