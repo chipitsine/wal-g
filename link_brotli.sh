@@ -1,5 +1,7 @@
 #!/bin/sh
 
+set -e
+
 test -d tmp/brotli || mkdir -p tmp/brotli
 
 cp -rf vendor/github.com/google/brotli/* tmp/brotli/
@@ -19,7 +21,7 @@ sed -i -e "/ -lm$/ n; /brotlienc/ s|$| -lm|" cgo.go
 mkdir -p ${LIB_DIR}
 
 cd ${LIB_DIR}
-../configure-cmake --disable-debug
+cmake -DBUILD_SHARED_LIBS=0 ..
 make
 
 cd ${CWD}
