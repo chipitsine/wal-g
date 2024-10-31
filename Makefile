@@ -303,7 +303,7 @@ deps: go_deps link_external_deps
 
 go_deps:
 	git submodule update --init
-	(cd submodules/brotli && patch -p0 --forward < ../../.github/make-brotli-static-again.patch || true) && echo OK
+	(cd submodules/brotli && patch -p1 --forward < ../../.github/make-brotli-static-again.patch || true) && echo OK
 	go mod vendor
 ifdef USE_LZO
 	sed -i 's|\(#cgo LDFLAGS:\) .*|\1 -Wl,-Bstatic -llzo2 -Wl,-Bdynamic|' vendor/github.com/cyberdelia/lzo/lzo.go
