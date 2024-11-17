@@ -96,6 +96,6 @@ WALG_STREAM_RESTORE_COMMAND: 'cat > /var/lib/redis/dump.rdb'
 ```
 
 ### Why we made redis_cli.sh
-redis-cli fails with error when redis version >= 6.2, so we made this workaround
+redis-cli fails with error when redis version >= 6.2 and < 6.2.5, so we made this workaround
 
-If you use redis >= 6.2, use [redis_cli.sh](https://github.com/wal-g/wal-g/blob/master/redis_cli.sh) and replace redis-cli in WALG_STREAM_CREATE_COMMAND
+If you use redis of that version range, use [redis_cli.sh](https://github.com/wal-g/wal-g/blob/master/redis_cli.sh) and replace redis-cli in WALG_STREAM_CREATE_COMMAND

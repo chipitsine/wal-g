@@ -42,7 +42,6 @@ RUN groupadd -r -g 999 $USER && useradd -r -g $GROUP -u 999 $USER && \
     cd "redis-${REDIS_VERSION}" && \
     make install
 
-COPY staging/wal-g/redis_cli.sh /usr/bin/redis_cli.sh
 COPY images/base/config/supervisor /etc/supervisor
 COPY images/redis/config /config
 

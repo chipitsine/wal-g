@@ -2,7 +2,7 @@
 set -e -x
 . /tmp/lib.sh
 
-export WALG_STREAM_CREATE_COMMAND="redis_cli.sh --rdb /dev/stdout"
+export WALG_STREAM_CREATE_COMMAND="redis_cli --rdb /dev/stdout"
 export WALG_STREAM_RESTORE_COMMAND="cat > /var/lib/redis/dump.rdb"
 export WALG_COMPRESSION_METHOD=lz4
 

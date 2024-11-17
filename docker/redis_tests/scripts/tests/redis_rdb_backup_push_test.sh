@@ -6,7 +6,7 @@ sleep $REDIS_TIMEOUT
 redis-server --save "900 0" --appendonly "no" --dir "/var/lib/redis" &
 sleep $REDIS_TIMEOUT
 
-export WALG_STREAM_CREATE_COMMAND="redis_cli.sh -a {password} --user default --rdb /dev/stdout"
+export WALG_STREAM_CREATE_COMMAND="redis_cli -a {password} --user default --rdb /dev/stdout"
 wal-g backup-push # Send stream of dump to wal-g
 wal-g rdb-backup-push # Send stream of dump to wal-g
 wal-g backup-delete LATEST
