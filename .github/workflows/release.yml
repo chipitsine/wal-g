@@ -72,7 +72,7 @@ jobs:
         db: [ pg, mysql, sqlserver, redis, mongo, fdb, gp ]
         include:
           - arch: aarch64
-            distro: ubuntu20.04
+            distro: ubuntu-20.04
       fail-fast: false
 
     steps:
@@ -83,7 +83,7 @@ jobs:
         uses: uraimo/run-on-arch-action@v2
         with:
           arch: ${{ matrix.arch }}
-          distro: ubuntu20.04
+          distro: ubuntu-20.04
           env: |
             USE_BROTLI: ${{ env.USE_BROTLI }}
             USE_LIBSODIUM: ${{ env.USE_LIBSODIUM }}
