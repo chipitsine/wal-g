@@ -41,5 +41,5 @@ jobs:
 
       - name: Test variables
         run: |
-         main/${{ matrix.db }}/wal-g flags
+         main/${{ matrix.db }}/wal-g flags --config null.json
 
