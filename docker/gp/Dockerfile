@@ -7,7 +7,7 @@ RUN apt-get update && \
     pinentry-qt \
     time \
     bc \
-    jq libxerces-c-dev \
+    jq libxerces-c-dev python-is-python3 \
     wget
 
 ADD docker/gp/run_greenplum.sh /home/gpadmin/run_greenplum.sh
