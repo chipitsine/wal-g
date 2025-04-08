@@ -39,6 +39,12 @@ services:
             - ${EXPOSE_SSH_PORT}
         env_file:
             - ${ENV_FILE}
+        healthcheck:
+          test: echo 'db.runCommand("ping").ok' | mongosh localhost:${MONGO_EXPOSE_MONGOD}/test --quiet
+          interval: 10s
+          timeout: 10s
+          retries: 5
+
     mongodb02:
         build:
             dockerfile: ${DOCKER_FILE}
