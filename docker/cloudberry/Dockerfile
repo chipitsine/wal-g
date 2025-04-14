@@ -10,6 +10,7 @@ RUN apt-get update && \
     python3-dev \
     pkg-config \
     rsync \
+    libprotobuf-dev \
     && \
     # nice to have: \
     apt-get install --yes --no-install-recommends --no-install-suggests \
