@@ -63,7 +63,10 @@ jobs:
       # build images
       - name: Build images
         if: steps.cache-images.outputs.cache-hit != 'true'
-        run: make pg_save_image
+        run: |
+          env
+          git config --global --add safe.directory /__w/wal-g/wal-g
+          make pg_save_image
     env:
       USE_BROTLI: 1
       USE_LZO: 1
