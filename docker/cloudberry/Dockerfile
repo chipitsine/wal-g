@@ -75,7 +75,7 @@ WORKDIR /usr/local
 #RUN git clone https://github.com/arenadata/gpdb.git gpdb_src --single-branch --branch adb-7.2.0 --depth 1 \
 # && ./gpdb_src/concourse/scripts/setup_gpadmin_user.bash
 
-RUN git clone https://github.com/cloudberrydb/cloudberrydb.git gpdb_src --single-branch --branch main --depth 1
+RUN git clone https://github.com/cloudberrydb/cloudberrydb.git gpdb_src --single-branch --branch main --depth 1 --recursive
 
 COPY docker/cloudberry/setup_gpadmin_user.bash /root/setup_gpadmin_user.bash
 RUN chmod +x /root/setup_gpadmin_user.bash \
