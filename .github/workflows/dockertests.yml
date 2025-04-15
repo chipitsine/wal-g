@@ -42,7 +42,7 @@ jobs:
         if: steps.cache-images.outputs.cache-hit != 'true'
         run: |
           apt-get update
-          apt-get install -y liblzo2-dev ca-certificates build-essential git
+          apt-get install -y liblzo2-dev ca-certificates build-essential git cmake
 
       - name: Check out code into the Go module directory
         if: steps.cache-images.outputs.cache-hit != 'true'
@@ -64,8 +64,7 @@ jobs:
       - name: Build images
         if: steps.cache-images.outputs.cache-hit != 'true'
         run: |
-          env
-          git config --global --add safe.directory /__w/wal-g/wal-g
+          git config --global --add safe.directory ${GITHUB_WORKSPACE}
           make pg_save_image
     env:
       USE_BROTLI: 1
@@ -88,7 +87,7 @@ jobs:
       - name: Install deps
         run: |
           apt-get update
-          apt-get install -y liblzo2-dev ca-certificates build-essential git
+          apt-get install -y liblzo2-dev ca-certificates build-essential git cmake
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v4
