@@ -43,7 +43,7 @@ jobs:
         if: steps.cache-images.outputs.cache-hit != 'true'
         run: |
           apt-get update
-          apt-get install -y liblzo2-dev ca-certificates build-essential git cmake docker
+          apt-get install -y liblzo2-dev ca-certificates build-essential git cmake docker.io
 
       - name: Check out code into the Go module directory
         if: steps.cache-images.outputs.cache-hit != 'true'
