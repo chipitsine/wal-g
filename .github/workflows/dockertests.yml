@@ -22,7 +22,9 @@ env:
 jobs:
   buildimages:
     name: Build images
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     steps:
       #  use cache to pass docker images to the test jobs
       - name: Docker images caching
@@ -66,7 +68,9 @@ jobs:
 
   test:
     name: test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
+    container:
+      image: ubuntu:20.04
     needs: [ buildimages ]
     strategy:
       matrix:
