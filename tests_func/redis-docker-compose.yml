@@ -43,6 +43,9 @@ services:
             - ${ENV_FILE}
         healthcheck:
             test: ["CMD", "redis-cli","ping"]
+            interval: 2s
+            timeout: 60s
+            retries: 5
 
     redis02:
         build:
