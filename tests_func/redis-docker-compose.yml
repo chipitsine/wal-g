@@ -41,6 +41,9 @@ services:
             - ./images/redis/config:/config:ro
         env_file:
             - ${ENV_FILE}
+        healthcheck:
+            test: ["CMD", "redis-cli","ping"]
+
     redis02:
         build:
             dockerfile: ${DOCKER_FILE}
