@@ -30,14 +30,13 @@ jobs:
     needs: create-release
     strategy:
       matrix:
-        os: [20.04, 22.04, 24.04]
-        db: [pg, mysql, sqlserver, redis, mongo, fdb, gp]
+        os: [ windows-latest ]
+        db: [ pg ]
       fail-fast: false
-    runs-on: ubuntu-latest
-    container:
-      image: ubuntu:${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Install build dependencies
+        if: startsWith(matrix.os, 'ubuntu-')
         run: |
           apt-get update
           apt-get install -y liblzo2-dev brotli libsodium-dev curl git cmake build-essential tzdata
