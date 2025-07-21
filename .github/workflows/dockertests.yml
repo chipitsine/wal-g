@@ -111,7 +111,10 @@ jobs:
           exit 1
 
       - name: Run test
-        run: ${{ matrix.command }}
+        run: |
+          docker image ls
+          echo '---------------------'
+          ${{ matrix.command }}
     env:
       USE_BROTLI: 1
       USE_LIBSODIUM: 1
