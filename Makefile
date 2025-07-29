@@ -82,6 +82,9 @@ pg_integration_test: clean_compose
 	@if echo "$(TEST)" | grep -Fqe "pg_ssh_"; then\
 		docker compose build ssh;\
 	fi
+	@if echo "$(TEST)" | grep -Fqe "pg_storage_ssh_"; then\
+		docker compose build ssh;\
+	fi
 
 	docker compose up --exit-code-from $(TEST) $(TEST)
 	# Run tests with dependencies if we run all tests
