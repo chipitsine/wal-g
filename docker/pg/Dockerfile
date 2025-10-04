@@ -1,6 +1,6 @@
 FROM postgres:18
 
-ENV PGDATA /var/lib/postgresql/10/main
+ENV PGDATA /var/lib/postgresql/data
 
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends --no-install-suggests \
