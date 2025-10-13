@@ -34,7 +34,7 @@ PGDATA=${PGDATA_ALPHA} /tmp/scripts/wait_while_pg_not_ready.sh
 popd
 
 # init beta cluster (replica of alpha)
-pg_basebackup  -C --slot=wal-g --wal-method=stream -D ${PGDATA_BETA} -U repl -h 127.0.0.1 -p ${ALPHA_PORT}
+pg_basebackup  -C --slot=slot --wal-method=stream -D ${PGDATA_BETA} -U repl -h 127.0.0.1 -p ${ALPHA_PORT}
 
 cp -r ${PGDATA_BETA} ${PGDATA_BETA_1}
 
