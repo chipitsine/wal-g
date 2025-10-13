@@ -47,10 +47,8 @@ echo "hot_standby = on" >> postgresql.conf
     touch "recovery.signal"
 
 cat >> "postgresql.conf" << EOF
-standby_mode = 'on'
 primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
 restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
-trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
 EOF
 
   else
