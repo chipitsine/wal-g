@@ -28,14 +28,13 @@ pushd ${PGDATA_ALPHA}
 psql -c "CREATE ROLE repl WITH REPLICATION PASSWORD 'password' LOGIN;"
 echo "host  replication  repl              127.0.0.1/32  md5" >> pg_hba.conf
 echo "wal_level = replica" >> postgresql.conf
-echo "wal_keep_segments = 100" >> postgresql.conf
 echo "max_wal_senders = 4" >> postgresql.conf
 pg_ctl -D ${PGDATA_ALPHA} -w restart
 PGDATA=${PGDATA_ALPHA} /tmp/scripts/wait_while_pg_not_ready.sh
 popd
 
 # init beta cluster (replica of alpha)
-pg_basebackup --wal-method=stream -D ${PGDATA_BETA} -U repl -h 127.0.0.1 -p ${ALPHA_PORT}
+pg_basebackup  --slot=wal-g --wal-method=stream -D ${PGDATA_BETA} -U repl -h 127.0.0.1 -p ${ALPHA_PORT}
 
 cp -r ${PGDATA_BETA} ${PGDATA_BETA_1}
 
