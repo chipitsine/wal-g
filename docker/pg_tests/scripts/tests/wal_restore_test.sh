@@ -90,12 +90,27 @@ cd ${PGDATA_BETA}
   echo "archive_command = '/usr/bin/timeout 600 /usr/bin/wal-g wal-push %p --config=${TMP_CONFIG}'"
   echo "archive_timeout = 600"
 } >> postgresql.conf
+
+
+  # https://www.postgresql.org/docs/current/recovery-config.html
+  if awk 'BEGIN {exit !('"$PG_VERSION"' >= 12)}'; then
+    touch "recovery.signal"
+
+cat >> postgresql.conf << EOF
+standby_mode = 'on'
+primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
+restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
+trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
+EOF
+
+  else
 cat > recovery.conf << EOF
 standby_mode = 'on'
 primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
 restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
 trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
 EOF
+  fi
 
 pg_ctl -D ${PGDATA_BETA} -w start
 
