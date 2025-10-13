@@ -41,12 +41,30 @@ cp -r ${PGDATA_BETA} ${PGDATA_BETA_1}
 pushd ${PGDATA_BETA}
 echo "port = ${BETA_PORT}" >> postgresql.conf
 echo "hot_standby = on" >> postgresql.conf
-cat > recovery.conf << EOF
+
+  # https://www.postgresql.org/docs/current/recovery-config.html
+  if awk 'BEGIN {exit !('"$PG_VERSION"' >= 12)}'; then
+    touch "$PGDATA/recovery.signal"
+
+cat >> "$PGDATA/postgresql.conf" << EOF
 standby_mode = 'on'
 primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
 restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
 trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
 EOF
+
+  else
+
+cat > "$PGDATA/recovery.conf" << EOF
+standby_mode = 'on'
+primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
+restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
+trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
+EOF
+
+  fi
+
+
 pg_ctl -D ${PGDATA_BETA} -w start
 popd
 
