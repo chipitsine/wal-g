@@ -74,7 +74,7 @@ timeout 30 wal-g --config=${TMP_CONFIG} delete everything FORCE --confirm
 psql -c "CREATE ROLE repl WITH REPLICATION PASSWORD 'password' LOGIN;"
 
 # init beta cluster (replica of alpha)
-pg_basebackup --slot=wal-g --wal-method=stream -D ${PGDATA_BETA} -U repl -h 127.0.0.1 -p ${ALPHA_PORT}
+pg_basebackup -C --slot=wal-g --wal-method=stream -D ${PGDATA_BETA} -U repl -h 127.0.0.1 -p ${ALPHA_PORT}
 
 # preparation for replication
 cd ${PGDATA_BETA}
