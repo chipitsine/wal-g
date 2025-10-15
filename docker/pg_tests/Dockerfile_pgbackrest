@@ -4,14 +4,14 @@ RUN apt-get update && apt-get install -y wget
 
 RUN mkdir -p /build
 
-RUN wget -q -O - https://github.com/pgbackrest/pgbackrest/archive/release/2.56.tar.gz | tar zx -C /build
+RUN wget -q -O - https://github.com/pgbackrest/pgbackrest/archive/release/2.56.0.tar.gz | tar zx -C /build
 RUN apt-get install -y make gcc libpq-dev libssl-dev libxml2-dev pkg-config liblz4-dev libzstd-dev libbz2-dev libz-dev libyaml-dev
 
-RUN cd /build/pgbackrest-release-2.56/src && ./configure && make
+RUN cd /build/pgbackrest-release-2.56.0/src && ./configure && make
 
 FROM wal-g/docker_prefix:latest
 
-COPY --from=build /build/pgbackrest-release-2.56/src/pgbackrest /usr/bin
+COPY --from=build /build/pgbackrest-release-2.56.0/src/pgbackrest /usr/bin
 
 
 RUN chmod 755 /usr/bin/pgbackrest && \
