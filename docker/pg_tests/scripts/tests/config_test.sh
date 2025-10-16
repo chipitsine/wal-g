@@ -33,8 +33,13 @@ rm -rf "${PGDATA}"
 
 wal-g --config=${TMP_CONFIG} --turbo backup-fetch "${PGDATA}" LATEST
 
+echo '-=-=-=-=-=-='
+echo $PG_VERSION
+echo '=-=-=-=-=-=-'
+
 # https://www.postgresql.org/docs/current/recovery-config.html
 if awk 'BEGIN {exit !('"$PG_VERSION"' >= 12)}'; then
+   echo 'we are ==========================='
    touch "$PGDATA/recovery.signal"
    echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" >> "${PGDATA}/postgresql.conf"
 else
