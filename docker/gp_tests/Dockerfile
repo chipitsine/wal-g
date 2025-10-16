@@ -20,8 +20,6 @@ FROM wal-g/gp:latest
 USER root
 
 COPY docker/pg/PGP_KEY /tmp/PGP_KEY
-COPY docker/pg/gpg.conf /home/gpadmin/.gnupg/gpg.conf
-COPY docker/pg/gpg-agent.conf /home/gpadmin/.gnupg/gpg-agent.conf
 
 COPY --from=build /go/src/github.com/wal-g/wal-g/main/gp/wal-g /usr/bin/
 
