@@ -109,6 +109,14 @@ diff /tmp/dump1 /tmp/dump2
 # check that stderr not include any backup
 # stderr shuld be "INFO: ... No backups found"
 ! cat /tmp/2 | egrep -o "[0-9A-F]{24}" > /tmp/dump1
+
+echo '-=-=-=-=-=-=-='
+cat /tmp/dump1
+echo '-=-=-=-=-=-=-='
+cat /tmp/dump2
+echo '-=-=-=-=-=-=-='
+
+
 diff /tmp/dump1 /tmp/dump2
 
 /tmp/scripts/drop_pg.sh
