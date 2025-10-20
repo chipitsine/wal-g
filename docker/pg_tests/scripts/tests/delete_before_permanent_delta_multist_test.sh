@@ -69,6 +69,15 @@ fi
 pg_ctl -D ${PGDATA} -w start
 /tmp/scripts/wait_while_pg_not_ready.sh
 pg_dumpall -f /tmp/dump2
+
+echo '-=-=-=-=-=-=-='
+cat /tmp/dump1
+echo '-=-=-=-=-=-=-='
+cat /tmp/dump2
+echo '-=-=-=-=-=-=-='
+
+
+
 diff /tmp/dump1 /tmp/dump2
 
 wal-g --config=${TMP_CONFIG} backup-list --detail
