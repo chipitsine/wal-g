@@ -233,9 +233,9 @@ func TestTransferHandler_Handle(t *testing.T) {
 		assert.Contains(t, err.Error(), "delete file")
 
 		// Due to concurrent workers and FailOnFirstErr, there's a race condition:
-		// when the error occurs, some files might be mid-copy.
+		// when the error occurs, some files might be mid-copy or mid-delete.
 		// We assert that at least 99 files are in target (allowing for 1 in-flight copy)
-		// and at least 84 files remain in source (allowing for 1 extra deleted).
+		// and 84-86 files remain in source (allowing for timing variance in concurrent deletes).
 		targetFiles := countFiles(h.target, 100)
 		sourceFiles := countFiles(h.source, 100)
 		assert.GreaterOrEqual(t, targetFiles, 99, "expected at least 99 files in target")
