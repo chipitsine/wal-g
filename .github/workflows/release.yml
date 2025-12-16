@@ -91,10 +91,12 @@ jobs:
 
   release-ubuntu-arm:
     needs: create-release
-    runs-on: ${{ matrix.os.distro }}
+    runs-on: ubuntu-24.04-arm
+    container:
+      image: ubuntu:${{ matrix.os.distro }}
     strategy:
       matrix:
-        os: [ { distro: ubuntu-22.04-arm, label: ubuntu-22.04 }, { distro: ubuntu-24.04-arm, label: ubuntu-24.04 } ]
+        os: [20.04, 22.04, 24.04]
         db: [ pg, mysql, sqlserver, redis, mongo, fdb, gp ]
         include:
           - arch: aarch64
@@ -130,16 +132,16 @@ jobs:
         run: make ${{ matrix.db }}_build
 
       - name: Rename WAL-G binary
-        run: mv main/${{ matrix.db }}/wal-g wal-g-${{ matrix.db }}-${{ matrix.os.label }}-${{ matrix.arch }}
+        run: mv main/${{ matrix.db }}/wal-g wal-g-${{ matrix.db }}-${{ matrix.os }}--${{ matrix.arch }}
 
       - name: Compress WAL-G binary
-        run: tar --owner=0 --group=0 -zcvf wal-g-${{ matrix.db }}-${{ matrix.os.label }}-${{ matrix.arch }}.tar.gz wal-g-${{ matrix.db }}-${{ matrix.os.label }}-${{ matrix.arch }}
+        run: tar --owner=0 --group=0 -zcvf wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ matrix.arch }}
 
       - name: Calculate checksum
-        run: sha256sum wal-g-${{ matrix.db }}-${{ matrix.os.label }}-${{ matrix.arch }} > wal-g-${{ matrix.db }}-${{ matrix.os.label }}-${{ matrix.arch }}.sha256
+        run: sha256sum wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ matrix.arch }} > wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ matrix.arch }}.sha256
 
       - name: Calculate checksum for the compressed binary
-        run: sha256sum wal-g-${{ matrix.db }}-${{ matrix.os.label }}-${{ matrix.arch }}.tar.gz > wal-g-${{ matrix.db }}-${{ matrix.os.label }}-${{ matrix.arch }}.tar.gz.sha256
+        run: sha256sum wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz > wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz.sha256
 
       - name: Upload WAL-G binary
         uses: softprops/action-gh-release@v2
