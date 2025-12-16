@@ -39,6 +39,8 @@ jobs:
     name: wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ contains(matrix.runner, 'arm') &&'aarch64' || 'amd64' }}
     container:
       image: ubuntu:${{ matrix.os }}
+    env:
+      arch: ${{ contains(matrix.runner, 'arm') &&'aarch64' || 'amd64' }}
     steps:
 
       - name: Determine arch
@@ -94,9 +96,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            wal-g-${{ matrix.db }}-${{ matrix.os }}-${arch}
-            wal-g-${{ matrix.db }}-${{ matrix.os }}-${arch}.tar.gz
-            wal-g-${{ matrix.db }}-${{ matrix.os }}-${arch}.sha256
-            wal-g-${{ matrix.db }}-${{ matrix.os }}-${arch}.tar.gz.sha256
+            wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ arch }}
+            wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ arch }}.tar.gz
+            wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ arch }}.sha256
+            wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ arch }}.tar.gz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
