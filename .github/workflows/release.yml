@@ -132,7 +132,7 @@ jobs:
         run: make ${{ matrix.db }}_build
 
       - name: Rename WAL-G binary
-        run: mv main/${{ matrix.db }}/wal-g wal-g-${{ matrix.db }}-${{ matrix.os }}--${{ matrix.arch }}
+        run: mv main/${{ matrix.db }}/wal-g wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ matrix.arch }}
 
       - name: Compress WAL-G binary
         run: tar --owner=0 --group=0 -zcvf wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ matrix.arch }}.tar.gz wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ matrix.arch }}
