@@ -36,7 +36,7 @@ jobs:
         runner: [ubuntu-24.04, ubuntu-24.04-arm]
       fail-fast: false
     runs-on: ${{ matrix.runner }}
-    name: wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ arch }}
+    name: wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ contains(matrix.runner, 'arm') &&'aarch64' || 'amd64' }}
     container:
       image: ubuntu:${{ matrix.os }}
     steps:
