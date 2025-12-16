@@ -93,7 +93,7 @@ jobs:
     needs: create-release
     runs-on: ubuntu-24.04-arm
     container:
-      image: ubuntu:${{ matrix.os.distro }}
+      image: ubuntu:${{ matrix.os }}
     strategy:
       matrix:
         os: [20.04, 22.04, 24.04]
