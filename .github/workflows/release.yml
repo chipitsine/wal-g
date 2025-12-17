@@ -95,9 +95,9 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            wal-g-${{ matrix.db }}-${{ steps.determine-arch.outputs.arch }}
-            wal-g-${{ matrix.db }}-${{ steps.determine-arch.outputs.arch }}.tar.gz
-            wal-g-${{ matrix.db }}-${{ steps.determine-arch.outputs.arch }}.sha256
+            wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ steps.determine-arch.outputs.arch }}
+            wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ steps.determine-arch.outputs.arch }}.tar.gz
+            wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ steps.determine-arch.outputs.arch }}.sha256
             wal-g-${{ matrix.db }}-${{ matrix.os }}-${{ steps.determine-arch.outputs.arch }}.tar.gz.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
