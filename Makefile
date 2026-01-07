@@ -84,13 +84,7 @@ cloudberry_build_image:
 	docker compose build $(DOCKER_COMMON)
 	docker compose build cloudberry
 
-save_all_images: install_and_build_pg pg_build_image gp_build_image cloudberry_build_image
-	mkdir -p ${CACHE_FOLDER}
-	sudo rm -rf ${CACHE_FOLDER}/*
-	docker save ${IMAGE} | gzip -c > ${CACHE_FILE_DOCKER_PREFIX}
-	docker save wal-g/ubuntu:18.04 | gzip -c > ${CACHE_FILE_UBUNTU_18_04}
-	docker save wal-g/ubuntu:20.04 | gzip -c > ${CACHE_FILE_UBUNTU_20_04}
-	docker save ${IMAGE_GOLANG} | gzip -c > ${CACHE_FILE_GOLANG}
+save_all_images: pg_save_image gp_build_image cloudberry_build_image
 	docker save wal-g/gp | gzip -c > ${CACHE_FILE_GP}
 	docker save wal-g/cloudberry | gzip -c > ${CACHE_FILE_CLOUDBERRY}
 	ls ${CACHE_FOLDER}
