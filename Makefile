@@ -76,6 +76,25 @@ pg_save_image: install_and_build_pg pg_build_image
 	docker save ${IMAGE_GOLANG} | gzip -c > ${CACHE_FILE_GOLANG}
 	ls ${CACHE_FOLDER}
 
+gp_build_image:
+	docker compose build $(DOCKER_COMMON)
+	docker compose build gp
+
+cloudberry_build_image:
+	docker compose build $(DOCKER_COMMON)
+	docker compose build cloudberry
+
+save_all_images: install_and_build_pg pg_build_image gp_build_image cloudberry_build_image
+	mkdir -p ${CACHE_FOLDER}
+	sudo rm -rf ${CACHE_FOLDER}/*
+	docker save ${IMAGE} | gzip -c > ${CACHE_FILE_DOCKER_PREFIX}
+	docker save wal-g/ubuntu:18.04 | gzip -c > ${CACHE_FILE_UBUNTU_18_04}
+	docker save wal-g/ubuntu:20.04 | gzip -c > ${CACHE_FILE_UBUNTU_20_04}
+	docker save ${IMAGE_GOLANG} | gzip -c > ${CACHE_FILE_GOLANG}
+	docker save wal-g/gp | gzip -c > ${CACHE_FILE_GP}
+	docker save wal-g/cloudberry | gzip -c > ${CACHE_FILE_CLOUDBERRY}
+	ls ${CACHE_FOLDER}
+
 pg_integration_test: clean_compose
 	@if [ "x" = "${CACHE_FILE_DOCKER_PREFIX}x" ]; then\
 		echo "Rebuild";\
@@ -266,7 +285,12 @@ gp_install: gp_build
 gp_test: deps gp_build unlink_brotli gp_integration_test
 
 gp_integration_test: load_docker_common
-	docker compose build gp
+	@if [ "x" = "${CACHE_FILE_GP}x" ]; then\
+		echo "Rebuild gp image";\
+		docker compose build gp;\
+	else\
+		docker load -i ${CACHE_FILE_GP};\
+	fi
 	docker compose build gp_tests
 	docker compose up --exit-code-from gp_tests gp_tests
 
@@ -279,7 +303,12 @@ cloudberry_install: gp_install
 cloudberry_test: deps cloudberry_build unlink_brotli cloudberry_integration_test
 
 cloudberry_integration_test: load_docker_common
-	docker compose build cloudberry
+	@if [ "x" = "${CACHE_FILE_CLOUDBERRY}x" ]; then\
+		echo "Rebuild cloudberry image";\
+		docker compose build cloudberry;\
+	else\
+		docker load -i ${CACHE_FILE_CLOUDBERRY};\
+	fi
 	docker compose build cloudberry_tests
 	docker compose up s3 cloudberry_tests --force-recreate --exit-code-from cloudberry_tests
 

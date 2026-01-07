@@ -13,6 +13,8 @@ env:
   CACHE_FILE_UBUNTU_20_04: ~/docker-images-${{ github.sha }}/wal-g_ubuntu-20.04.tgz
   CACHE_FILE_GOLANG: ~/docker-images-${{ github.sha }}/wal-g_golang.tgz
   CACHE_FILE_DOCKER_PREFIX: ~/docker-images-${{ github.sha }}/docker_prefix.tgz
+  CACHE_FILE_GP: ~/docker-images-${{ github.sha }}/wal-g_gp.tgz
+  CACHE_FILE_CLOUDBERRY: ~/docker-images-${{ github.sha }}/wal-g_cloudberry.tgz
   IMAGE: wal-g/docker_prefix
   IMAGE_GOLANG: wal-g/golang
   IMAGES_CACHE_KEY: docker-images-${{ github.sha }}
@@ -35,6 +37,8 @@ jobs:
             ${{ env.CACHE_FILE_UBUNTU_18_04 }}
             ${{ env.CACHE_FILE_UBUNTU_20_04 }}
             ${{ env.CACHE_FILE_GOLANG }}
+            ${{ env.CACHE_FILE_GP }}
+            ${{ env.CACHE_FILE_CLOUDBERRY }}
           key: ${{ env.IMAGES_CACHE_KEY }}
 
       - name: Install deps
@@ -60,7 +64,7 @@ jobs:
       # build images
       - name: Build images
         if: steps.cache-images.outputs.cache-hit != 'true'
-        run: make pg_save_image
+        run: make save_all_images
     env:
       USE_BROTLI: 1
       USE_LZO: 1
@@ -103,6 +107,8 @@ jobs:
             ${{ env.CACHE_FILE_UBUNTU_18_04 }}
             ${{ env.CACHE_FILE_UBUNTU_20_04 }}
             ${{ env.CACHE_FILE_GOLANG }}
+            ${{ env.CACHE_FILE_GP }}
+            ${{ env.CACHE_FILE_CLOUDBERRY }}
           key: ${{ env.IMAGES_CACHE_KEY }}
 
       - name: Fail if no cached images
