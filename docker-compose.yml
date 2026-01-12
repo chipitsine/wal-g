@@ -623,6 +623,13 @@ services:
     command: /tmp/tests/compressed_test.sh
     <<: *s3_common_depends
 
+  orioledb_all_tests:
+    image: wal-g/orioledb
+    user: postgres
+    container_name: wal-g_orioledb_all_tests
+    command: /tmp/tests/orioledb_all_tests.sh
+    <<: *s3_common_depends
+
   mysql:
     build:
       dockerfile: docker/mysql/Dockerfile
