@@ -112,8 +112,8 @@ func (reader *RangeReader) reconnect() error {
 	return nil
 }
 
-// THIS COde stolen from s3 lib, from vendor/github.com/aws/aws-sdk-go/aws/client/default_retryer.go
-// func (d DefaultRetryer) RetryRules( .. ) time.Duration
+// THIS CODE inspired by s3 lib retry logic
+// In AWS SDK v2, similar exponential backoff logic is used for retries
 // this calculate sleep duration (jitter and exponential backoff)
 func (reader *RangeReader) getIncrSleep(retryCount int) time.Duration {
 	minDelay := minRetryDelay
