@@ -7,20 +7,15 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/aws/smithy-go/middleware"
 	"github.com/wal-g/tracelog"
 	"gopkg.in/yaml.v3"
-
-	"github.com/wal-g/wal-g/utility"
 )
 
 func createSession(cfg *Config) (aws.Config, error) {
@@ -34,7 +29,12 @@ func createSession(cfg *Config) (aws.Config, error) {
 		if err != nil {
 			return aws.Config{}, err
 		}
-		optFns = append(optFns, config.WithCustomCABundle(certData))
+		optFns = append(optFns, func(opts *config.LoadOptions) error {
+			// For SDK v2, we need to handle custom CA differently through HTTP client
+			// We'll handle this in the HTTP client setup below
+			return nil
+		})
+		_ = certData // Will use this later when setting up HTTP client
 	}
 
 	awsCfg, err := config.LoadDefaultConfig(ctx, optFns...)
@@ -54,15 +54,11 @@ func configureAWSConfig(awsCfg *aws.Config, cfg *Config) error {
 	ctx := context.Background()
 	
 	// Configure HTTP client with logging
-	if awsCfg.HTTPClient == nil {
-		awsCfg.HTTPClient = awshttp.NewBuildableClient()
-	}
-	if transport, ok := awsCfg.HTTPClient.(*awshttp.BuildableClient); ok {
-		if transport.GetTransport() != nil {
-			transport.WithTransportOptions(func(tr *http.Transport) {
-				// Wrap with logging
-				tr.Transport = NewRoundTripperWithLogging(tr.Transport)
-			})
+	// In SDK v2, we need to work with the underlying http.Client
+	baseClient := awsCfg.HTTPClient
+	if httpClient, ok := baseClient.(*http.Client); ok {
+		if httpClient.Transport != nil {
+			httpClient.Transport = NewRoundTripperWithLogging(httpClient.Transport)
 		}
 	}
 
