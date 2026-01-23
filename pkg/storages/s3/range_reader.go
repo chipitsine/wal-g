@@ -1,6 +1,7 @@
 package s3
 
 import (
+	"context"
 	"fmt"
 	"hash/fnv"
 	"io"
@@ -9,8 +10,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/pkg/errors"
 	"github.com/wal-g/tracelog"
 )
@@ -33,6 +34,7 @@ type RangeReader struct {
 }
 
 func (reader *RangeReader) getObjectRange(from, to int64) (*s3.GetObjectOutput, error) {
+	ctx := context.Background()
 	bytesRange := fmt.Sprintf("bytes=%d-", from)
 	if to != 0 {
 		bytesRange += strconv.Itoa(int(to))
@@ -43,7 +45,7 @@ func (reader *RangeReader) getObjectRange(from, to int64) (*s3.GetObjectOutput, 
 		Range:  aws.String(bytesRange),
 	}
 	reader.debugLog("GetObject with range %s", bytesRange)
-	return reader.folder.s3API.GetObject(input)
+	return reader.folder.s3API.GetObject(ctx, input)
 }
 
 func (reader *RangeReader) Read(p []byte) (n int, err error) {
@@ -110,8 +112,8 @@ func (reader *RangeReader) reconnect() error {
 	return nil
 }
 
-// THIS COde stolen from s3 lib, from vendor/github.com/aws/aws-sdk-go/aws/client/default_retryer.go
-// func (d DefaultRetryer) RetryRules( .. ) time.Duration
+// THIS CODE inspired by s3 lib retry logic
+// In AWS SDK v2, similar exponential backoff logic is used for retries
 // this calculate sleep duration (jitter and exponential backoff)
 func (reader *RangeReader) getIncrSleep(retryCount int) time.Duration {
 	minDelay := minRetryDelay

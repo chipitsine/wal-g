@@ -1,12 +1,13 @@
 package awskms
 
 import (
+	"context"
 	"crypto/rand"
 	"sync"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/kms"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/kms"
 )
 
 // SymmetricKey is AWS KMS implementation of crypto.SymmetricKey interface
@@ -39,18 +40,18 @@ func (symmetricKey *SymmetricKey) Generate() error {
 
 // Encrypt symmetric key with AWS KMS
 func (symmetricKey *SymmetricKey) Encrypt() error {
-	kmsConfig := aws.NewConfig()
-
-	if symmetricKey.Region != "" {
-		kmsConfig = kmsConfig.WithRegion(symmetricKey.Region)
-	}
-
-	kmsSession, err := session.NewSession()
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx, func(opts *config.LoadOptions) error {
+		if symmetricKey.Region != "" {
+			opts.Region = symmetricKey.Region
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
 
-	svc := kms.New(kmsSession, kmsConfig)
+	svc := kms.NewFromConfig(cfg)
 
 	symmetricKey.mutex.RLock()
 	input := &kms.EncryptInput{
@@ -59,7 +60,7 @@ func (symmetricKey *SymmetricKey) Encrypt() error {
 	}
 	symmetricKey.mutex.RUnlock()
 
-	result, err := svc.Encrypt(input)
+	result, err := svc.Encrypt(ctx, input)
 
 	if err == nil {
 		symmetricKey.mutex.Lock()
@@ -72,18 +73,18 @@ func (symmetricKey *SymmetricKey) Encrypt() error {
 
 // Decrypt symmetric key with AWS KMS
 func (symmetricKey *SymmetricKey) Decrypt() error {
-	kmsConfig := aws.NewConfig()
-
-	if symmetricKey.Region != "" {
-		kmsConfig = kmsConfig.WithRegion(symmetricKey.Region)
-	}
-
-	kmsSession, err := session.NewSession()
+	ctx := context.Background()
+	cfg, err := config.LoadDefaultConfig(ctx, func(opts *config.LoadOptions) error {
+		if symmetricKey.Region != "" {
+			opts.Region = symmetricKey.Region
+		}
+		return nil
+	})
 	if err != nil {
 		return err
 	}
 
-	svc := kms.New(kmsSession, kmsConfig)
+	svc := kms.NewFromConfig(cfg)
 
 	symmetricKey.mutex.RLock()
 	input := &kms.DecryptInput{
@@ -91,7 +92,7 @@ func (symmetricKey *SymmetricKey) Decrypt() error {
 	}
 	symmetricKey.mutex.RUnlock()
 
-	result, err := svc.Decrypt(input)
+	result, err := svc.Decrypt(ctx, input)
 
 	if err == nil {
 		symmetricKey.mutex.Lock()

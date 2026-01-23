@@ -6,11 +6,10 @@ import (
 	"io"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +24,7 @@ type UploaderConfig struct {
 	RetentionMode                string
 }
 
-func createUploader(s3Client *s3.S3, config *UploaderConfig) (*Uploader, error) {
+func createUploader(s3Client *s3.Client, config *UploaderConfig) (*Uploader, error) {
 	uploaderAPI := CreateUploaderAPI(s3Client, config.MaxPartSize, config.UploadConcurrency)
 
 	if (config.ServerSideEncryption == "aws:kms") == (config.ServerSideEncryptionKMSID == "") {
@@ -43,7 +42,7 @@ func createUploader(s3Client *s3.S3, config *UploaderConfig) (*Uploader, error) 
 }
 
 type Uploader struct {
-	uploaderAPI          s3manageriface.UploaderAPI
+	uploaderAPI          *manager.Uploader
 	serverSideEncryption string
 	SSECustomerKey       string
 	SSEKMSKeyID          string
@@ -52,7 +51,7 @@ type Uploader struct {
 	RetentionPeriod      time.Duration
 }
 
-func NewUploader(uploaderAPI s3manageriface.UploaderAPI, serverSideEncryption, sseCustomerKey, sseKmsKeyID, storageClass,
+func NewUploader(uploaderAPI *manager.Uploader, serverSideEncryption, sseCustomerKey, sseKmsKeyID, storageClass,
 	retentionMode string, retentionPeriod int) *Uploader {
 	if retentionMode == "" {
 		retentionMode = "GOVERNANCE"
@@ -66,16 +65,18 @@ func NewUploader(uploaderAPI s3manageriface.UploaderAPI, serverSideEncryption, s
 		time.Duration(retentionPeriod)}
 }
 
-func (uploader *Uploader) createUploadInput(bucket, path string, content io.Reader) *s3manager.UploadInput {
-	uploadInput := &s3manager.UploadInput{
+func (uploader *Uploader) createUploadInput(bucket, path string, content io.Reader) *s3.PutObjectInput {
+	storageClass := types.StorageClass(uploader.StorageClass)
+	uploadInput := &s3.PutObjectInput{
 		Bucket:       aws.String(bucket),
 		Key:          aws.String(path),
 		Body:         content,
-		StorageClass: aws.String(uploader.StorageClass),
+		StorageClass: storageClass,
 	}
 	if uploader.RetentionPeriod != defaultDisabledRetentionPeriod {
 		mytime := time.Now().Add(time.Second * uploader.RetentionPeriod)
-		uploadInput.ObjectLockMode = &uploader.RetentionMode
+		mode := types.ObjectLockMode(uploader.RetentionMode)
+		uploadInput.ObjectLockMode = mode
 		uploadInput.ObjectLockRetainUntilDate = &mytime
 	}
 
@@ -86,7 +87,8 @@ func (uploader *Uploader) createUploadInput(bucket, path string, content io.Read
 			customerKeyMD5 := GetSSECustomerKeyMD5(uploader.SSECustomerKey)
 			uploadInput.SSECustomerKeyMD5 = aws.String(customerKeyMD5)
 		} else {
-			uploadInput.ServerSideEncryption = aws.String(uploader.serverSideEncryption)
+			sseType := types.ServerSideEncryption(uploader.serverSideEncryption)
+			uploadInput.ServerSideEncryption = sseType
 		}
 
 		if uploader.SSEKMSKeyID != "" {
@@ -100,14 +102,14 @@ func (uploader *Uploader) createUploadInput(bucket, path string, content io.Read
 
 func (uploader *Uploader) upload(ctx context.Context, bucket, path string, content io.Reader) error {
 	input := uploader.createUploadInput(bucket, path, content)
-	_, err := uploader.uploaderAPI.UploadWithContext(ctx, input)
+	_, err := uploader.uploaderAPI.Upload(ctx, input)
 	return errors.Wrapf(err, "failed to upload '%s' to bucket '%s'", path, bucket)
 }
 
 // CreateUploaderAPI returns an uploader with customizable concurrency
 // and part size.
-func CreateUploaderAPI(svc s3iface.S3API, partsize, concurrency int) s3manageriface.UploaderAPI {
-	uploaderAPI := s3manager.NewUploaderWithClient(svc, func(uploader *s3manager.Uploader) {
+func CreateUploaderAPI(svc *s3.Client, partsize, concurrency int) *manager.Uploader {
+	uploaderAPI := manager.NewUploader(svc, func(uploader *manager.Uploader) {
 		uploader.PartSize = int64(partsize)
 		uploader.Concurrency = concurrency
 	})
@@ -130,11 +132,11 @@ func partitionStrings(strings []string, blockSize int) [][]string {
 	return partition
 }
 
-func partitionObjects(objects []*s3.ObjectIdentifier, blockSize int) [][]*s3.ObjectIdentifier {
+func partitionObjects(objects []types.ObjectIdentifier, blockSize int) [][]types.ObjectIdentifier {
 	if blockSize <= 0 {
-		return [][]*s3.ObjectIdentifier{objects}
+		return [][]types.ObjectIdentifier{objects}
 	}
-	partition := make([][]*s3.ObjectIdentifier, 0)
+	partition := make([][]types.ObjectIdentifier, 0)
 	for i := 0; i < len(objects); i += blockSize {
 		if i+blockSize > len(objects) {
 			partition = append(partition, objects[i:])

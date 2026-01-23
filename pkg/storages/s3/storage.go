@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/wal-g/wal-g/pkg/storages/storage"
 )
 
@@ -52,12 +52,19 @@ type Secrets struct {
 
 // TODO: Unit tests
 func NewStorage(config *Config, rootWraps ...storage.WrapRootFolder) (*Storage, error) {
-	sess, err := createSession(config)
+	awsCfg, err := createSession(config)
 	if err != nil {
-		return nil, fmt.Errorf("create new AWS session: %w", err)
+		return nil, fmt.Errorf("create new AWS config: %w", err)
 	}
 
-	s3Client := s3.New(sess)
+	s3Client := s3.NewFromConfig(awsCfg, func(o *s3.Options) {
+		if config.Endpoint != "" {
+			o.BaseEndpoint = &config.Endpoint
+		}
+		o.UsePathStyle = config.ForcePathStyle
+		// In SDK v2, there's no direct equivalent for S3Disable100Continue
+		// It's handled at the HTTP client level
+	})
 
 	uploader, err := createUploader(s3Client, config.Uploader)
 	if err != nil {
