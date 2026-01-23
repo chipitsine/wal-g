@@ -507,12 +507,12 @@ func (folder *Folder) Validate() error {
 	ctx := context.Background()
 	prefix := aws.String(folder.path)
 	delimiter := aws.String("/")
-	int32One := int32(1)
+	maxKeysOne := int32(1)
 	input := &s3.ListObjectsInput{
 		Bucket:    folder.bucket,
 		Prefix:    prefix,
 		Delimiter: delimiter,
-		MaxKeys:   &int32One,
+		MaxKeys:   &maxKeysOne,
 	}
 	_, err := folder.s3API.ListObjects(ctx, input)
 	if err != nil {

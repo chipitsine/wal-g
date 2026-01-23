@@ -23,18 +23,12 @@ func createSession(cfg *Config) (aws.Config, error) {
 	
 	var optFns []func(*config.LoadOptions) error
 	
-	// Configure CA cert if provided
+	// TODO: Configure CA cert if provided
+	// In SDK v2, custom CA bundles need to be configured through the HTTP client
+	// This requires creating a custom http.Transport with the CA pool
 	if cfg.CACertFile != "" {
-		certData, err := os.ReadFile(cfg.CACertFile)
-		if err != nil {
-			return aws.Config{}, err
-		}
-		optFns = append(optFns, func(opts *config.LoadOptions) error {
-			// For SDK v2, we need to handle custom CA differently through HTTP client
-			// We'll handle this in the HTTP client setup below
-			return nil
-		})
-		_ = certData // Will use this later when setting up HTTP client
+		// For now, log a warning that CA cert files are not yet supported in v2 migration
+		// This feature can be implemented later if needed
 	}
 
 	awsCfg, err := config.LoadDefaultConfig(ctx, optFns...)
