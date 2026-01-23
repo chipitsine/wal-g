@@ -131,9 +131,10 @@ func detectAWSRegion(bucket string, awsCfg aws.Config) (string, error) {
 func detectAWSRegionByBucket(bucket string, cfg aws.Config) (string, error) {
 	ctx := context.Background()
 	
-	// Set temporary region to us-east-1 for region detection
-	cfg.Region = "us-east-1"
-	s3Client := s3.NewFromConfig(cfg)
+	// Create a copy with temporary region set to us-east-1 for region detection
+	tempCfg := cfg.Copy()
+	tempCfg.Region = "us-east-1"
+	s3Client := s3.NewFromConfig(tempCfg)
 	
 	output, err := s3Client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
 		Bucket: aws.String(bucket),
