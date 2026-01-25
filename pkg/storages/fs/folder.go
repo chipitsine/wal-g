@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/pkg/errors"
@@ -71,7 +72,7 @@ func (folder *Folder) DeleteObjects(objectRelativePaths []string) error {
 // cleanupEmptyParentDirs removes empty parent directories up to the root storage path
 func (folder *Folder) cleanupEmptyParentDirs(filePath string) {
 	// Start from the parent directory of the deleted file
-	currentDir := path.Dir(filePath)
+	currentDir := filepath.Dir(filePath)
 	
 	// Walk up the directory tree until we reach the root storage path
 	for {
@@ -104,7 +105,7 @@ func (folder *Folder) cleanupEmptyParentDirs(filePath string) {
 		tracelog.DebugLogger.Printf("Removed empty directory: %s\n", currentDir)
 		
 		// Move to the parent directory
-		currentDir = path.Dir(currentDir)
+		currentDir = filepath.Dir(currentDir)
 	}
 }
 
