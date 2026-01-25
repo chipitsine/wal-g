@@ -54,15 +54,58 @@ func (folder *Folder) ListFolder() (objects []storage.Object, subFolders []stora
 
 func (folder *Folder) DeleteObjects(objectRelativePaths []string) error {
 	for _, fileName := range objectRelativePaths {
-		err := os.RemoveAll(folder.GetFilePath(fileName))
+		filePath := folder.GetFilePath(fileName)
+		err := os.RemoveAll(filePath)
 		if os.IsNotExist(err) {
 			continue
 		}
 		if err != nil {
 			return fmt.Errorf("unable to delete file %q: %w", fileName, err)
 		}
+		// Clean up empty parent directories after successful deletion
+		folder.cleanupEmptyParentDirs(filePath)
 	}
 	return nil
+}
+
+// cleanupEmptyParentDirs removes empty parent directories up to the root storage path
+func (folder *Folder) cleanupEmptyParentDirs(filePath string) {
+	// Start from the parent directory of the deleted file
+	currentDir := path.Dir(filePath)
+	
+	// Walk up the directory tree until we reach the root storage path
+	for {
+		// Don't remove the root storage path itself
+		if currentDir == folder.rootPath || currentDir == "." || currentDir == "/" {
+			break
+		}
+		
+		// Check if the directory is empty
+		entries, err := os.ReadDir(currentDir)
+		if err != nil {
+			// If we can't read the directory, stop cleanup
+			tracelog.DebugLogger.Printf("Cannot read directory %q during cleanup: %v\n", currentDir, err)
+			break
+		}
+		
+		// If directory is not empty, stop cleanup
+		if len(entries) > 0 {
+			break
+		}
+		
+		// Directory is empty, try to remove it
+		err = os.Remove(currentDir)
+		if err != nil {
+			// If we can't remove the directory, log and stop cleanup
+			tracelog.DebugLogger.Printf("Cannot remove empty directory %q: %v\n", currentDir, err)
+			break
+		}
+		
+		tracelog.DebugLogger.Printf("Removed empty directory: %s\n", currentDir)
+		
+		// Move to the parent directory
+		currentDir = path.Dir(currentDir)
+	}
 }
 
 func (folder *Folder) Exists(objectRelativePath string) (bool, error) {
