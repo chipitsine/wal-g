@@ -3,7 +3,6 @@ on: [ push, pull_request ]
 
 env:
   GO_VERSION: "1.25"
-  GOEXPERIMENT: jsonv2
 
 jobs:
   golangci:
