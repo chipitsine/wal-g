@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/api/types/network"
 	"github.com/docker/docker/client"
@@ -81,29 +82,29 @@ func RunCommandStrict(ctx context.Context, container string, command []string) (
 	return exc, nil
 }
 
-func RunCommand(ctx context.Context, container string, cmd []string) (ExecResult, error) {
+func RunCommand(ctx context.Context, containerName string, cmd []string) (ExecResult, error) {
 	args := &RunOptions{}
 
-	execConfig := types.ExecConfig{
+	execConfig := container.ExecOptions{
 		AttachStdout: true,
 		AttachStderr: true,
 		User:         args.user,
 		Cmd:          cmd,
 	}
 
-	containerExec, err := Docker.ContainerExecCreate(ctx, container, execConfig)
+	containerExec, err := Docker.ContainerExecCreate(ctx, containerName, execConfig)
 	if err != nil {
 		return ExecResult{}, err
 	}
 
-	attach, err := Docker.ContainerExecAttach(ctx, containerExec.ID, types.ExecConfig{})
+	attach, err := Docker.ContainerExecAttach(ctx, containerExec.ID, container.ExecStartOptions{})
 	if err != nil {
 		return ExecResult{}, err
 	}
 	defer attach.Close()
 
 	cmdLine := strings.Join(cmd, " ")
-	tracelog.DebugLogger.Printf("Running command on %s: %v", container, cmdLine)
+	tracelog.DebugLogger.Printf("Running command on %s: %v", containerName, cmdLine)
 
 	var outBuf, errBuf bytes.Buffer
 	outputDone := make(chan error)
@@ -133,29 +134,29 @@ func RunCommand(ctx context.Context, container string, cmd []string) (ExecResult
 	return exc, nil
 }
 
-func RunAsyncCommand(ctx context.Context, container, cmd string) error {
-	execCfg := types.ExecConfig{
+func RunAsyncCommand(ctx context.Context, containerName, cmd string) error {
+	execCfg := container.ExecOptions{
 		Detach: true,
 		Cmd:    []string{shell, "-c", cmd},
 	}
-	execResp, err := Docker.ContainerExecCreate(ctx, container, execCfg)
+	execResp, err := Docker.ContainerExecCreate(ctx, containerName, execCfg)
 	if err != nil {
 		return err
 	}
-	return Docker.ContainerExecStart(ctx, execResp.ID, types.ExecStartCheck{})
+	return Docker.ContainerExecStart(ctx, execResp.ID, container.ExecStartOptions{})
 }
 
 func ContainerWithPrefix(containers []types.Container, name string) (*types.Container, error) {
-	for _, container := range containers {
-		if utils.StringInSlice(name, container.Names) {
-			return &container, nil
+	for _, c := range containers {
+		if utils.StringInSlice(name, c.Names) {
+			return &c, nil
 		}
 	}
 	return nil, fmt.Errorf("cannot find container with name %s", name)
 }
 
 func DockerContainer(ctx context.Context, prefix string) (*types.Container, error) {
-	containers, err := Docker.ContainerList(ctx, types.ContainerListOptions{})
+	containers, err := Docker.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
 		return nil, fmt.Errorf("error in getting docker container: %v", err)
 	}
@@ -166,7 +167,7 @@ func DockerContainer(ctx context.Context, prefix string) (*types.Container, erro
 	return containerWithPrefixPointer, nil
 }
 
-func ExposedPort(container types.Container, port int) (string, int, error) {
+func ExposedPort(c types.Container, port int) (string, int, error) {
 	machineName, hasMachineName := os.LookupEnv(envDockerMachineName)
 	host := "localhost"
 	if hasMachineName {
@@ -177,7 +178,7 @@ func ExposedPort(container types.Container, port int) (string, int, error) {
 		host = string(hostBytes)
 	}
 
-	bindings := container.Ports
+	bindings := c.Ports
 	for _, value := range bindings {
 		if value.Type != "tcp" {
 			continue
@@ -189,19 +190,19 @@ func ExposedPort(container types.Container, port int) (string, int, error) {
 	return "", 0, fmt.Errorf("error in getting exposed port")
 }
 
-func ListNets(ctx context.Context, name string) ([]types.NetworkResource, error) {
+func ListNets(ctx context.Context, name string) ([]network.Inspect, error) {
 	networkFilters := filters.NewArgs()
-	networkResources, err := Docker.NetworkList(ctx, types.NetworkListOptions{
+	networkResources, err := Docker.NetworkList(ctx, network.ListOptions{
 		Filters: networkFilters,
 	})
-	var result []types.NetworkResource
+	var result []network.Inspect
 	for _, value := range networkResources {
 		if value.Name == name {
 			result = append(result, value)
 		}
 	}
 	if err != nil {
-		return []types.NetworkResource{}, fmt.Errorf("error in getting network list with name: %v", err)
+		return []network.Inspect{}, fmt.Errorf("error in getting network list with name: %v", err)
 	}
 	return result, nil
 }
@@ -223,7 +224,7 @@ func CreateNet(ctx context.Context, netName string) error {
 		"com.docker.network.bridge.enable_icc":           "true",
 		"com.docker.network.bridge.netName":              netName,
 	}
-	config := types.NetworkCreate{
+	config := network.CreateOptions{
 		IPAM:    ipam,
 		Options: netOpts,
 	}
@@ -347,6 +348,6 @@ func (inf *Infra) callCompose(actions []string) error {
 
 func init() {
 	var err error
-	Docker, err = client.NewEnvClient()
+	Docker, err = client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	tracelog.ErrorLogger.FatalOnError(err)
 }
