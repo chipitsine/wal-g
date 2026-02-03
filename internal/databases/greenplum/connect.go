@@ -6,8 +6,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
 	"github.com/wal-g/tracelog"
-
-	"github.com/wal-g/wal-g/internal/databases/postgres"
 )
 
 // Connect establishes a connection to Greenplum using
@@ -17,8 +15,8 @@ import (
 //
 // Example: PGHOST=/var/run/postgresql or PGHOST=10.0.0.1
 //
-// This function wraps postgres.Connect and adds Greenplum-specific
-// connection parameters (gp_role, gp_session_role) as a fallback
+// This function implements Greenplum-specific connection logic,
+// including fallback with gp_role and gp_session_role parameters
 // when the initial connection fails.
 func Connect(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, error) {
 	config, err := pgx.ParseConfig("")
@@ -43,7 +41,8 @@ func Connect(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, er
 			tracelog.ErrorLogger.Println("Failed to connect using provided PGHOST and PGPORT, trying localhost:5432")
 			config.Host = "localhost"
 			config.Port = 5432
-			conn, err = pgx.ConnectConfig(context.TODO(), config)
+			// Try localhost with GP parameters
+			conn, err = tryConnectToGpSegment(config)
 		}
 
 		if err != nil {
