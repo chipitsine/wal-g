@@ -1,13 +1,16 @@
 package greenplum
 
 import (
+	"github.com/jackc/pgx/v5"
 	"github.com/wal-g/tracelog"
 
 	"github.com/wal-g/wal-g/internal/databases/postgres"
 )
 
 func NewSegBackupHandler(arguments postgres.BackupArguments) (*postgres.BackupHandler, error) {
-	bh, err := postgres.NewBackupHandler(arguments)
+	bh, err := postgres.NewBackupHandlerWithConnect(arguments, func(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, error) {
+		return Connect(configOptions...)
+	})
 	if err != nil {
 		return nil, err
 	}
