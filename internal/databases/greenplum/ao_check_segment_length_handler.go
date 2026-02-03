@@ -166,7 +166,7 @@ func (checker *AOLengthCheckSegmentHandler) checkFileSizes(AOTablesSize map[stri
 }
 
 func (checker *AOLengthCheckSegmentHandler) connect(db string) (*pgx.Conn, error) {
-	return postgres.Connect(func(config *pgx.ConnConfig) error {
+	return Connect(func(config *pgx.ConnConfig) error {
 		a, err := strconv.Atoi(checker.port)
 		if err != nil {
 			return err
