@@ -56,6 +56,9 @@ func Connect(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, er
 
 // nolint:gocritic
 func tryConnectToGpSegment(config *pgx.ConnConfig) (*pgx.Conn, error) {
+	if config.RuntimeParams == nil {
+		config.RuntimeParams = make(map[string]string)
+	}
 	config.RuntimeParams["gp_role"] = "utility"
 	conn, err := pgx.ConnectConfig(context.TODO(), config)
 
