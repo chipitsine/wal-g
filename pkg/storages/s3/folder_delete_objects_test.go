@@ -1,12 +1,12 @@
 package s3_test
 
 import (
+	"context"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/aws/smithy-go"
 	"github.com/stretchr/testify/assert"
 	walgs3 "github.com/wal-g/wal-g/pkg/storages/s3"
 )
@@ -15,38 +15,62 @@ import (
 // It simulates the scenario where DeleteObjects fails, triggering the error logging path
 // that would cause a nil pointer panic if VersionId is not checked for nil
 type MockS3ClientForDeleteObjects struct {
-	s3iface.S3API
 	returnError       bool
 	versioningEnabled bool
 }
 
-func (m *MockS3ClientForDeleteObjects) DeleteObjects(input *s3.DeleteObjectsInput) (*s3.DeleteObjectsOutput, error) {
+// Implement the minimum required methods for walgs3.API interface
+func (m *MockS3ClientForDeleteObjects) HeadObject(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
+	return &s3.HeadObjectOutput{}, nil
+}
+
+func (m *MockS3ClientForDeleteObjects) CopyObject(ctx context.Context, params *s3.CopyObjectInput, optFns ...func(*s3.Options)) (*s3.CopyObjectOutput, error) {
+	return &s3.CopyObjectOutput{}, nil
+}
+
+func (m *MockS3ClientForDeleteObjects) GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
+	return &s3.GetObjectOutput{}, nil
+}
+
+func (m *MockS3ClientForDeleteObjects) ListObjects(ctx context.Context, params *s3.ListObjectsInput, optFns ...func(*s3.Options)) (*s3.ListObjectsOutput, error) {
+	return &s3.ListObjectsOutput{}, nil
+}
+
+func (m *MockS3ClientForDeleteObjects) ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options)) (*s3.ListObjectsV2Output, error) {
+	return &s3.ListObjectsV2Output{}, nil
+}
+
+func (m *MockS3ClientForDeleteObjects) DeleteObjects(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error) {
 	if m.returnError {
 		// Return an error to trigger the error logging path in DeleteObjects
-		return nil, awserr.New("MockDeleteObjectsError", "simulated delete error", nil)
+		return nil, &smithy.GenericAPIError{Code: "MockDeleteObjectsError", Message: "simulated delete error"}
 	}
 	return &s3.DeleteObjectsOutput{}, nil
 }
 
-func (m *MockS3ClientForDeleteObjects) GetBucketVersioning(input *s3.GetBucketVersioningInput) (*s3.GetBucketVersioningOutput, error) {
-	if m.versioningEnabled {
-		return &s3.GetBucketVersioningOutput{
-			Status: aws.String(s3.BucketVersioningStatusEnabled),
-		}, nil
-	}
-	return &s3.GetBucketVersioningOutput{}, nil
-}
-
-func (m *MockS3ClientForDeleteObjects) ListObjectVersions(input *s3.ListObjectVersionsInput) (*s3.ListObjectVersionsOutput, error) {
+func (m *MockS3ClientForDeleteObjects) ListObjectVersions(
+	ctx context.Context, params *s3.ListObjectVersionsInput, optFns ...func(*s3.Options),
+) (*s3.ListObjectVersionsOutput, error) {
 	// Return versions with nil VersionId to simulate non-versioned buckets
 	return &s3.ListObjectVersionsOutput{
-		Versions: []*s3.ObjectVersion{
+		Versions: []types.ObjectVersion{
 			{
-				Key:       input.Prefix,
+				Key:       params.Prefix,
 				VersionId: nil, // This is the critical case - VersionId can be nil in non-versioned buckets
 			},
 		},
 	}, nil
+}
+
+func (m *MockS3ClientForDeleteObjects) GetBucketVersioning(
+	ctx context.Context, params *s3.GetBucketVersioningInput, optFns ...func(*s3.Options),
+) (*s3.GetBucketVersioningOutput, error) {
+	if m.versioningEnabled {
+		return &s3.GetBucketVersioningOutput{
+			Status: types.BucketVersioningStatusEnabled,
+		}, nil
+	}
+	return &s3.GetBucketVersioningOutput{}, nil
 }
 
 // TestDeleteObjects_WithNilVersionId tests that DeleteObjects handles nil VersionId gracefully

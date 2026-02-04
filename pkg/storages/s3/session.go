@@ -3,8 +3,6 @@ package s3
 import (
 	"context"
 	"fmt"
-	"io"
-	"net"
 	"net/http"
 	"os"
 	"strings"
@@ -15,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/wal-g/tracelog"
-	"gopkg.in/yaml.v3"
 )
 
 func createSession(cfg *Config) (aws.Config, error) {
