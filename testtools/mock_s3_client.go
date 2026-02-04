@@ -13,11 +13,7 @@ import (
 	walgs3 "github.com/wal-g/wal-g/pkg/storages/s3"
 )
 
-// Mock out S3 client. Includes these methods for SDK v2:
-// ListObjects(*s3.ListObjectsInput)
-// ListObjectsV2(*ListObjectsV2Input)
-// GetObject(*GetObjectInput)
-// HeadObject(*HeadObjectInput)
+// Mock out S3 client. Implements manager.UploadAPIClient interface for SDK v2
 type MockS3Client struct {
 	err      bool
 	notFound bool
@@ -25,6 +21,46 @@ type MockS3Client struct {
 
 func NewMockS3Client(err, notFound bool) *MockS3Client {
 	return &MockS3Client{err: err, notFound: notFound}
+}
+
+// PutObject for SDK v2
+func (client *MockS3Client) PutObject(ctx context.Context, input *s3.PutObjectInput, opts ...func(*s3.Options)) (*s3.PutObjectOutput, error) {
+	if client.err {
+		return nil, &smithy.GenericAPIError{Code: "MockPutObject", Message: "mock PutObject error"}
+	}
+	return &s3.PutObjectOutput{}, nil
+}
+
+// UploadPart for SDK v2 (required by manager.UploadAPIClient)
+func (client *MockS3Client) UploadPart(ctx context.Context, input *s3.UploadPartInput, opts ...func(*s3.Options)) (*s3.UploadPartOutput, error) {
+	if client.err {
+		return nil, &smithy.GenericAPIError{Code: "MockUploadPart", Message: "mock UploadPart error"}
+	}
+	return &s3.UploadPartOutput{ETag: aws.String("mock-etag")}, nil
+}
+
+// CreateMultipartUpload for SDK v2 (required by manager.UploadAPIClient)
+func (client *MockS3Client) CreateMultipartUpload(ctx context.Context, input *s3.CreateMultipartUploadInput, opts ...func(*s3.Options)) (*s3.CreateMultipartUploadOutput, error) {
+	if client.err {
+		return nil, &smithy.GenericAPIError{Code: "MockCreateMultipartUpload", Message: "mock CreateMultipartUpload error"}
+	}
+	return &s3.CreateMultipartUploadOutput{UploadId: aws.String("mock-upload-id")}, nil
+}
+
+// CompleteMultipartUpload for SDK v2 (required by manager.UploadAPIClient)
+func (client *MockS3Client) CompleteMultipartUpload(ctx context.Context, input *s3.CompleteMultipartUploadInput, opts ...func(*s3.Options)) (*s3.CompleteMultipartUploadOutput, error) {
+	if client.err {
+		return nil, &smithy.GenericAPIError{Code: "MockCompleteMultipartUpload", Message: "mock CompleteMultipartUpload error"}
+	}
+	return &s3.CompleteMultipartUploadOutput{}, nil
+}
+
+// AbortMultipartUpload for SDK v2 (required by manager.UploadAPIClient)
+func (client *MockS3Client) AbortMultipartUpload(ctx context.Context, input *s3.AbortMultipartUploadInput, opts ...func(*s3.Options)) (*s3.AbortMultipartUploadOutput, error) {
+	if client.err {
+		return nil, &smithy.GenericAPIError{Code: "MockAbortMultipartUpload", Message: "mock AbortMultipartUpload error"}
+	}
+	return &s3.AbortMultipartUploadOutput{}, nil
 }
 
 // ListObjects for SDK v2
@@ -42,6 +78,45 @@ func (client *MockS3Client) ListObjects(ctx context.Context, input *s3.ListObjec
 	return output, nil
 }
 
+// ListObjectsV2 for SDK v2
+func (client *MockS3Client) ListObjectsV2(ctx context.Context, input *s3.ListObjectsV2Input, opts ...func(*s3.Options)) (*s3.ListObjectsV2Output, error) {
+	if client.err {
+		return nil, &smithy.GenericAPIError{Code: "MockListObjectsV2", Message: "mock ListObjectsV2 errors"}
+	}
+
+	contents := fakeContents()
+	output := &s3.ListObjectsV2Output{
+		Contents: contents,
+		Name:     input.Bucket,
+	}
+
+	return output, nil
+}
+
+// DeleteObjects for SDK v2
+func (client *MockS3Client) DeleteObjects(ctx context.Context, input *s3.DeleteObjectsInput, opts ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error) {
+	if client.err {
+		return nil, &smithy.GenericAPIError{Code: "MockDeleteObjects", Message: "mock DeleteObjects error"}
+	}
+	return &s3.DeleteObjectsOutput{}, nil
+}
+
+// ListObjectVersions for SDK v2
+func (client *MockS3Client) ListObjectVersions(ctx context.Context, input *s3.ListObjectVersionsInput, opts ...func(*s3.Options)) (*s3.ListObjectVersionsOutput, error) {
+	if client.err {
+		return nil, &smithy.GenericAPIError{Code: "MockListObjectVersions", Message: "mock ListObjectVersions error"}
+	}
+	return &s3.ListObjectVersionsOutput{}, nil
+}
+
+// GetBucketVersioning for SDK v2
+func (client *MockS3Client) GetBucketVersioning(ctx context.Context, input *s3.GetBucketVersioningInput, opts ...func(*s3.Options)) (*s3.GetBucketVersioningOutput, error) {
+	if client.err {
+		return nil, &smithy.GenericAPIError{Code: "MockGetBucketVersioning", Message: "mock GetBucketVersioning error"}
+	}
+	return &s3.GetBucketVersioningOutput{}, nil
+}
+
 // GetObject for SDK v2
 func (client *MockS3Client) GetObject(ctx context.Context, input *s3.GetObjectInput, opts ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 	if client.err {
@@ -53,6 +128,14 @@ func (client *MockS3Client) GetObject(ctx context.Context, input *s3.GetObjectIn
 	}
 
 	return output, nil
+}
+
+// CopyObject for SDK v2
+func (client *MockS3Client) CopyObject(ctx context.Context, input *s3.CopyObjectInput, opts ...func(*s3.Options)) (*s3.CopyObjectOutput, error) {
+	if client.err {
+		return nil, &smithy.GenericAPIError{Code: "MockCopyObject", Message: "mock CopyObject error"}
+	}
+	return &s3.CopyObjectOutput{}, nil
 }
 
 // HeadObject for SDK v2

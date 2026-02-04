@@ -28,9 +28,21 @@ const (
 	VersioningDisabled = "disabled"
 )
 
+// S3API defines the S3 operations used by Folder
+type S3API interface {
+	HeadObject(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error)
+	CopyObject(ctx context.Context, params *s3.CopyObjectInput, optFns ...func(*s3.Options)) (*s3.CopyObjectOutput, error)
+	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
+	ListObjects(ctx context.Context, params *s3.ListObjectsInput, optFns ...func(*s3.Options)) (*s3.ListObjectsOutput, error)
+	ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
+	DeleteObjects(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error)
+	ListObjectVersions(ctx context.Context, params *s3.ListObjectVersionsInput, optFns ...func(*s3.Options)) (*s3.ListObjectVersionsOutput, error)
+	GetBucketVersioning(ctx context.Context, params *s3.GetBucketVersioningInput, optFns ...func(*s3.Options)) (*s3.GetBucketVersioningOutput, error)
+}
+
 // TODO: Unit tests
 type Folder struct {
-	s3API           *s3.Client
+	s3API           S3API
 	uploader        *Uploader
 	bucket          *string
 	path            string
@@ -39,7 +51,7 @@ type Folder struct {
 }
 
 func NewFolder(
-	s3API *s3.Client,
+	s3API S3API,
 	uploader *Uploader,
 	path string,
 	config *Config,
