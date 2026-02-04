@@ -462,7 +462,7 @@ func (folder *Folder) DeleteObjects(objectRelativePaths []string) error {
 			for _, obj := range part {
 				tracelog.DebugLogger.Printf("object %s version %s", *obj.Key, *obj.VersionId)
 			}
-			return errors.Wrapf(err, "failed to delete s3 object: '%s'", part)
+			return errors.Wrapf(err, "failed to delete s3 objects")
 		}
 	}
 	return nil
