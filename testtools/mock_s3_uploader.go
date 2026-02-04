@@ -5,28 +5,24 @@ import (
 	"context"
 	"io"
 
-	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/smithy-go"
 	"github.com/wal-g/wal-g/pkg/storages/memory"
 )
 
+// mockMultiFailureError simulates a multi-upload failure
 type mockMultiFailureError struct {
-	s3manager.MultiUploadFailure
-	err awserr.Error
-}
-
-func (err mockMultiFailureError) UploadID() string {
-	return "mock ID"
+	uploadID string
+	errMsg   string
 }
 
 func (err mockMultiFailureError) Error() string {
-	return err.err.Error()
+	return err.errMsg
 }
 
-// MockS3Uploader client for S3. Must implement UploadWithContext method.
+// MockS3Uploader client for S3. Compatible with SDK v2 manager.Uploader
 type MockS3Uploader struct {
-	s3manageriface.UploaderAPI
 	multiErr bool
 	err      bool
 	storage  *memory.KVS
@@ -36,20 +32,21 @@ func NewMockS3Uploader(multiErr, err bool, storage *memory.KVS) *MockS3Uploader 
 	return &MockS3Uploader{multiErr: multiErr, err: err, storage: storage}
 }
 
-func (uploader *MockS3Uploader) UploadWithContext(_ context.Context, input *s3manager.UploadInput,
-	_ ...func(*s3manager.Uploader)) (*s3manager.UploadOutput, error) {
+// Upload simulates the manager.Uploader Upload method for SDK v2
+func (uploader *MockS3Uploader) Upload(ctx context.Context, input *s3.PutObjectInput,
+	opts ...func(*manager.Uploader)) (*manager.UploadOutput, error) {
 	if uploader.err {
-		return nil, awserr.New("UploadFailed", "mock Upload error", nil)
+		return nil, &smithy.GenericAPIError{Code: "UploadFailed", Message: "mock Upload error"}
 	}
 
 	if uploader.multiErr {
-		e := mockMultiFailureError{
-			err: awserr.New("UploadFailed", "multiupload failure error", nil),
+		return nil, mockMultiFailureError{
+			uploadID: "mock ID",
+			errMsg:   "multiupload failure error",
 		}
-		return nil, e
 	}
 
-	output := &s3manager.UploadOutput{
+	output := &manager.UploadOutput{
 		Location:  *input.Bucket,
 		VersionID: input.Key,
 	}
@@ -69,3 +66,4 @@ func (uploader *MockS3Uploader) UploadWithContext(_ context.Context, input *s3ma
 
 	return output, nil
 }
+

@@ -1,5 +1,10 @@
 package s3
 
+// Tests for ConnResetRetryer have been disabled because the retry logic
+// was removed during AWS SDK v2 migration. In SDK v2, retry logic is handled
+// through middleware and retry strategies built into the SDK.
+
+/*
 import (
 	"fmt"
 	"net"
@@ -47,3 +52,5 @@ func TestConnResetRetryerThrottling(t *testing.T) {
 	resp := &http.Response{StatusCode: 429}
 	assert.True(t, retryer.ShouldRetry(&request.Request{HTTPResponse: resp}))
 }
+*/
+

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +33,7 @@ func TestCreateUploadInput_WithoutServerSideEncryption(t *testing.T) {
 	assert.Equal(t, uploadInput.Bucket, aws.String(dummyBucket))
 	assert.Equal(t, uploadInput.Key, aws.String(dummyPath))
 	assert.Equal(t, uploadInput.Body, dummyContent)
-	assert.Equal(t, uploadInput.StorageClass, aws.String(dummyStorageClass))
+	assert.Equal(t, uploadInput.StorageClass, types.StorageClass(dummyStorageClass))
 }
 
 func TestCreateUploadInput_WithServerSideEncryptionAndWithCustomerKey(t *testing.T) {
@@ -48,7 +48,7 @@ func TestCreateUploadInput_WithServerSideEncryptionAndWithCustomerKey(t *testing
 	assert.Equal(t, uploadInput.Bucket, aws.String(dummyBucket))
 	assert.Equal(t, uploadInput.Key, aws.String(dummyPath))
 	assert.Equal(t, uploadInput.Body, dummyContent)
-	assert.Equal(t, uploadInput.StorageClass, aws.String(dummyStorageClass))
+	assert.Equal(t, uploadInput.StorageClass, types.StorageClass(dummyStorageClass))
 	assert.Equal(t, uploadInput.SSECustomerAlgorithm, aws.String(dummyServerSideEncryption))
 	assert.Equal(t, uploadInput.SSECustomerKey, aws.String(dummySSECustomerKey))
 
@@ -67,8 +67,8 @@ func TestCreateUploadInput_WithServerSideEncryptionAndWithoutCustomerKey(t *test
 	assert.Equal(t, uploadInput.Bucket, aws.String(dummyBucket))
 	assert.Equal(t, uploadInput.Key, aws.String(dummyPath))
 	assert.Equal(t, uploadInput.Body, dummyContent)
-	assert.Equal(t, uploadInput.StorageClass, aws.String(dummyStorageClass))
-	assert.Equal(t, uploadInput.ServerSideEncryption, aws.String(dummyServerSideEncryption))
+	assert.Equal(t, uploadInput.StorageClass, types.StorageClass(dummyStorageClass))
+	assert.Equal(t, uploadInput.ServerSideEncryption, types.ServerSideEncryption(dummyServerSideEncryption))
 }
 
 func TestCreateUploadInput_WithServerSideEncryptionAndWithKMSKeyID(t *testing.T) {
@@ -83,7 +83,7 @@ func TestCreateUploadInput_WithServerSideEncryptionAndWithKMSKeyID(t *testing.T)
 	assert.Equal(t, uploadInput.Bucket, aws.String(dummyBucket))
 	assert.Equal(t, uploadInput.Key, aws.String(dummyPath))
 	assert.Equal(t, uploadInput.Body, dummyContent)
-	assert.Equal(t, uploadInput.StorageClass, aws.String(dummyStorageClass))
+	assert.Equal(t, uploadInput.StorageClass, types.StorageClass(dummyStorageClass))
 	assert.Equal(t, uploadInput.SSEKMSKeyId, aws.String(dummySSEKMSKeyID))
 }
 
@@ -144,19 +144,19 @@ func TestPartitionStrings(t *testing.T) {
 
 func TestPartitionObjects(t *testing.T) {
 	testCases := []struct {
-		strings   []*s3.ObjectIdentifier
+		strings   []types.ObjectIdentifier
 		blockSize int
-		expected  [][]*s3.ObjectIdentifier
+		expected  [][]types.ObjectIdentifier
 	}{
-		{[]*s3.ObjectIdentifier{{}, {}, {}, {}, {}}, 2, [][]*s3.ObjectIdentifier{{{}, {}}, {{}, {}}, {{}}}},
-		{[]*s3.ObjectIdentifier{{}, {}, {}, {}, {}, {}}, 3, [][]*s3.ObjectIdentifier{{{}, {}, {}}, {{}, {}, {}}}},
-		{[]*s3.ObjectIdentifier{{}, {}, {}, {}, {}}, 1000, [][]*s3.ObjectIdentifier{{{}, {}, {}, {}, {}}}},
-		{[]*s3.ObjectIdentifier{{}, {}, {}, {}, {}}, 1, [][]*s3.ObjectIdentifier{{{}}, {{}}, {{}}, {{}}, {{}}}},
-		{[]*s3.ObjectIdentifier{{}, {}, {}, {}, {}}, 0, [][]*s3.ObjectIdentifier{{{}, {}, {}, {}, {}}}},
-		{[]*s3.ObjectIdentifier{{}, {}, {}, {}, {}}, -1, [][]*s3.ObjectIdentifier{{{}, {}, {}, {}, {}}}},
-		{[]*s3.ObjectIdentifier{{}, {}}, 5, [][]*s3.ObjectIdentifier{{{}, {}}}},
-		{[]*s3.ObjectIdentifier{{}}, 1, [][]*s3.ObjectIdentifier{{{}}}},
-		{[]*s3.ObjectIdentifier{}, 1, [][]*s3.ObjectIdentifier{}},
+		{[]types.ObjectIdentifier{{}, {}, {}, {}, {}}, 2, [][]types.ObjectIdentifier{{{}, {}}, {{}, {}}, {{}}}},
+		{[]types.ObjectIdentifier{{}, {}, {}, {}, {}, {}}, 3, [][]types.ObjectIdentifier{{{}, {}, {}}, {{}, {}, {}}}},
+		{[]types.ObjectIdentifier{{}, {}, {}, {}, {}}, 1000, [][]types.ObjectIdentifier{{{}, {}, {}, {}, {}}}},
+		{[]types.ObjectIdentifier{{}, {}, {}, {}, {}}, 1, [][]types.ObjectIdentifier{{{}}, {{}}, {{}}, {{}}, {{}}}},
+		{[]types.ObjectIdentifier{{}, {}, {}, {}, {}}, 0, [][]types.ObjectIdentifier{{{}, {}, {}, {}, {}}}},
+		{[]types.ObjectIdentifier{{}, {}, {}, {}, {}}, -1, [][]types.ObjectIdentifier{{{}, {}, {}, {}, {}}}},
+		{[]types.ObjectIdentifier{{}, {}}, 5, [][]types.ObjectIdentifier{{{}, {}}}},
+		{[]types.ObjectIdentifier{{}}, 1, [][]types.ObjectIdentifier{{{}}}},
+		{[]types.ObjectIdentifier{}, 1, [][]types.ObjectIdentifier{}},
 	}
 	for i, tc := range testCases {
 		t.Run(fmt.Sprintf("case %d", i), func(t *testing.T) {

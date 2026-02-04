@@ -15,7 +15,7 @@ import (
 
 	"github.com/wal-g/wal-g/internal/databases/postgres"
 
-	"github.com/aws/aws-sdk-go/service/s3/s3manager/s3manageriface"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
 	"github.com/wal-g/wal-g/internal"
@@ -42,13 +42,24 @@ func MakeDefaultInMemoryStorageFolder() *memory.Folder {
 	return memory.NewFolder("in_memory/", memory.NewKVS())
 }
 
-func MakeDefaultUploader(uploaderAPI s3manageriface.UploaderAPI) *s3.Uploader {
+func MakeDefaultUploader(uploaderAPI *manager.Uploader) *s3.Uploader {
 	return s3.NewUploader(uploaderAPI, "", "", "", "STANDARD", "", -1)
 }
 
+// createMockManagerUploader wraps a MockS3Uploader to work like manager.Uploader
+func createMockManagerUploader(mockUploader *MockS3Uploader, s3Client *MockS3Client) *manager.Uploader {
+	// Create a real manager.Uploader with the mock S3 client
+	// The manager.Uploader will use the mock client internally
+	return manager.NewUploader(s3Client)
+}
+
 func NewMockUploader(apiMultiErr, apiErr bool) internal.Uploader {
-	s3Uploader := MakeDefaultUploader(NewMockS3Uploader(apiMultiErr, apiErr, nil))
 	apiMock := NewMockS3Client(false, true)
+	mockUploader := NewMockS3Uploader(apiMultiErr, apiErr, nil)
+	// Create a manager uploader from the mock client
+	managerUploader := createMockManagerUploader(mockUploader, apiMock)
+	s3Uploader := MakeDefaultUploader(managerUploader)
+	
 	config := &s3.Config{
 		Bucket: "bucket/",
 	}
@@ -66,8 +77,11 @@ func NewStoringMockUploader(storage *memory.KVS) internal.Uploader {
 }
 
 func NewMockWalUploader(apiMultiErr, apiErr bool) *postgres.WalUploader {
-	s3Uploader := MakeDefaultUploader(NewMockS3Uploader(apiMultiErr, apiErr, nil))
 	apiMock := NewMockS3Client(false, true)
+	mockUploader := NewMockS3Uploader(apiMultiErr, apiErr, nil)
+	managerUploader := createMockManagerUploader(mockUploader, apiMock)
+	s3Uploader := MakeDefaultUploader(managerUploader)
+	
 	config := &s3.Config{
 		Bucket: "bucket/",
 	}

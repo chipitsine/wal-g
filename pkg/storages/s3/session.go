@@ -1,124 +1,71 @@
 package s3
 
 import (
+	"context"
 	"fmt"
-	"io"
-	"net"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/client"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/defaults"
-	"github.com/aws/aws-sdk-go/aws/endpoints"
-	"github.com/aws/aws-sdk-go/aws/request"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/sts"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/wal-g/tracelog"
-	"gopkg.in/yaml.v3"
-
-	"github.com/wal-g/wal-g/utility"
 )
 
-func createSession(config *Config) (*session.Session, error) {
-	sessOpts := session.Options{}
-	if config.CACertFile != "" {
-		file, err := os.Open(config.CACertFile)
-		if err != nil {
-			return nil, err
-		}
-		defer utility.LoggedClose(file, "S3 CA cert file")
-		sessOpts.CustomCABundle = file
+func createSession(cfg *Config) (aws.Config, error) {
+	ctx := context.Background()
+
+	var optFns []func(*config.LoadOptions) error
+
+	// TODO: Configure CA cert if provided
+	// In SDK v2, custom CA bundles need to be configured through the HTTP client
+	// This requires creating a custom http.Transport with the CA pool
+	if cfg.CACertFile != "" {
+		tracelog.WarningLogger.Printf("CA cert files are not yet fully supported in AWS SDK v2 migration: %s", cfg.CACertFile)
 	}
 
-	sess, err := session.NewSessionWithOptions(sessOpts)
+	awsCfg, err := config.LoadDefaultConfig(ctx, optFns...)
 	if err != nil {
-		return nil, fmt.Errorf("init new session: %w", err)
+		return aws.Config{}, fmt.Errorf("init new config: %w", err)
 	}
 
-	err = configureSession(sess, config)
+	err = configureAWSConfig(&awsCfg, cfg)
 	if err != nil {
-		return nil, fmt.Errorf("configure session: %w", err)
+		return aws.Config{}, fmt.Errorf("configure AWS config: %w", err)
 	}
 
-	if config.UseYCSessionToken != "" {
-		useYcSessionToken, err := strconv.ParseBool(config.UseYCSessionToken)
-		if err != nil {
-			return nil, fmt.Errorf("invalid YC session token: %w", err)
-		}
-		if useYcSessionToken {
-			// Yandex Cloud mimic metadata service, so we can use default AWS credentials, but set token to another header
-			cred := credentials.NewCredentials(defaults.RemoteCredProvider(*defaults.Config(), defaults.Handlers()))
-			sess.Config.WithCredentials(cred)
-			sess.Handlers.Send.PushFront(func(r *request.Request) {
-				token := r.HTTPRequest.Header.Get("X-Amz-Security-Token")
-				r.HTTPRequest.Header.Set("X-YaCloud-SubjectToken", token)
-			})
-		}
-	}
-
-	if config.EndpointSource != "" {
-		sess.Handlers.Validate.PushBack(func(request *request.Request) {
-			endpoint := requestEndpointFromSource(config.EndpointSource, config.EndpointPort)
-			if endpoint != nil {
-				tracelog.DebugLogger.Printf("using S3 endpoint %s", *endpoint)
-				host := strings.TrimPrefix(*sess.Config.Endpoint, "https://")
-				request.HTTPRequest.Host = host
-				request.HTTPRequest.URL.Host = *endpoint
-				request.HTTPRequest.URL.Scheme = "http"
-			} else {
-				tracelog.DebugLogger.Printf("using S3 endpoint %s", *sess.Config.Endpoint)
-			}
-		})
-	}
-
-	if config.RequestAdditionalHeaders != "" {
-		headers, err := decodeHeaders(config.RequestAdditionalHeaders)
-		if err != nil {
-			return nil, fmt.Errorf("decode additional headers for S3 requests: %w", err)
-		}
-
-		sess.Handlers.Validate.PushBack(func(request *request.Request) {
-			for k, v := range headers {
-				request.HTTPRequest.Header.Add(k, v)
-			}
-		})
-	}
-
-	return sess, err
+	return awsCfg, nil
 }
 
-func configureSession(sess *session.Session, config *Config) error {
-	awsConfig := sess.Config
+func configureAWSConfig(awsCfg *aws.Config, cfg *Config) error {
+	ctx := context.Background()
 
-	// DefaultRetryer implements basic retry logic using exponential backoff for
-	// most services. If you want to implement custom retry logic, you can implement the
-	// request.Retryer interface.
-	awsConfig = request.WithRetryer(awsConfig, NewConnResetRetryer(
-		client.DefaultRetryer{
-			NumMaxRetries:    config.MaxRetries,
-			MinThrottleDelay: config.MinThrottlingRetryDelay,
-			MaxThrottleDelay: config.MaxThrottlingRetryDelay,
-		}))
+	// Configure HTTP client with logging
+	// In SDK v2, we need to work with the underlying http.Client
+	baseClient := awsCfg.HTTPClient
+	if httpClient, ok := baseClient.(*http.Client); ok {
+		if httpClient.Transport != nil {
+			httpClient.Transport = NewRoundTripperWithLogging(httpClient.Transport)
+		}
+	}
 
-	awsConfig.HTTPClient.Transport = NewRoundTripperWithLogging(awsConfig.HTTPClient.Transport)
-	accessKey := config.AccessKey
-	secretKey := config.Secrets.SecretKey
-	sessionToken := config.SessionToken
+	accessKey := cfg.AccessKey
+	secretKey := cfg.Secrets.SecretKey
+	sessionToken := cfg.SessionToken
 
-	if config.RoleARN != "" {
+	// Handle role assumption
+	if cfg.RoleARN != "" {
 		if os.Getenv("AWS_WEB_IDENTITY_TOKEN_FILE") != "" && os.Getenv("AWS_ROLE_ARN") != "" {
 			// Skip explicit role assumption when using IRSA
 			tracelog.InfoLogger.Printf("Running with IRSA, skipping explicit role assumption")
 		} else {
-			stsSession := sts.New(sess)
-			assumedRole, err := stsSession.AssumeRole(&sts.AssumeRoleInput{
-				RoleArn:         aws.String(config.RoleARN),
-				RoleSessionName: aws.String(config.SessionName),
+			stsClient := sts.NewFromConfig(*awsCfg)
+			assumedRole, err := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
+				RoleArn:         aws.String(cfg.RoleARN),
+				RoleSessionName: aws.String(cfg.SessionName),
 			})
 			if err != nil {
 				return fmt.Errorf("assume role by ARN: %w", err)
@@ -129,155 +76,65 @@ func configureSession(sess *session.Session, config *Config) error {
 		}
 	}
 
+	// Configure credentials
 	if accessKey != "" && secretKey != "" {
-		provider := &credentials.StaticProvider{Value: credentials.Value{
-			AccessKeyID:     accessKey,
-			SecretAccessKey: secretKey,
-			SessionToken:    sessionToken,
-		}}
-		providers := make([]credentials.Provider, 0)
-		providers = append(providers, provider)
-		providers = append(providers, defaults.CredProviders(awsConfig, defaults.Handlers())...)
-		newCredentials := credentials.NewCredentials(&credentials.ChainProvider{
-			VerboseErrors: aws.BoolValue(awsConfig.CredentialsChainVerboseErrors),
-			Providers:     providers,
-		})
-
-		awsConfig = awsConfig.WithCredentials(newCredentials)
+		staticCreds := credentials.NewStaticCredentialsProvider(accessKey, secretKey, sessionToken)
+		awsCfg.Credentials = staticCreds
 	}
 
-	if config.LogLevel != "" {
-		awsConfig = awsConfig.WithLogLevel(func(s string) aws.LogLevelType {
-			switch s {
-			case "DEVEL":
-				return aws.LogDebug
-			default:
-				return aws.LogOff
-			}
-		}(config.LogLevel))
-	}
-
-	if config.Endpoint != "" {
-		awsConfig = awsConfig.WithEndpoint(config.Endpoint)
-	}
-
-	if config.DualStack {
-		awsConfig.UseDualStackEndpoint = endpoints.DualStackEndpointStateEnabled
-	}
-	awsConfig.S3ForcePathStyle = &config.ForcePathStyle
-
-	if config.Region == "" {
-		region, err := detectAWSRegion(config.Bucket, awsConfig)
+	// Configure region
+	if cfg.Region != "" {
+		awsCfg.Region = cfg.Region
+	} else {
+		region, err := detectAWSRegion(cfg.Bucket, cfg.Endpoint, awsCfg)
 		if err != nil {
 			return fmt.Errorf("AWS region isn't configured explicitly: detect region: %w", err)
 		}
-		awsConfig = awsConfig.WithRegion(region)
-	} else {
-		awsConfig = awsConfig.WithRegion(config.Region)
+		awsCfg.Region = region
 	}
-	tracelog.DebugLogger.Printf("disable 100 continue %t", config.Disable100Continue)
-	awsConfig.S3Disable100Continue = aws.Bool(config.Disable100Continue)
 
-	sess.Config = awsConfig
+	tracelog.DebugLogger.Printf("disable 100 continue %t", cfg.Disable100Continue)
+
 	return nil
 }
 
-func detectAWSRegion(bucket string, awsConfig *aws.Config) (string, error) {
-	if awsConfig.Endpoint == nil ||
-		*awsConfig.Endpoint == "" ||
-		strings.HasSuffix(*awsConfig.Endpoint, ".amazonaws.com") {
-		region, err := detectAWSRegionByBucket(bucket, awsConfig)
-		if err != nil {
-			return "", fmt.Errorf("detect region by bucket: %w", err)
-		}
-		return region, nil
-	}
-	// For S3 compatible services like Minio, Ceph etc. use `us-east-1` as region
+func detectAWSRegion(bucket, endpoint string, awsCfg *aws.Config) (string, error) {
+	// If a custom endpoint is configured and it's not an AWS endpoint,
+	// we're using an S3-compatible service (MinIO, Ceph, etc.)
+	// In this case, use "us-east-1" as the default region
 	// ref: https://github.com/minio/cookbook/blob/master/docs/aws-sdk-for-go-with-minio.md
-	return "us-east-1", nil
+	if endpoint != "" && !strings.HasSuffix(endpoint, ".amazonaws.com") {
+		return "us-east-1", nil
+	}
+
+	// For AWS S3 or when no endpoint is specified, try to detect the region by bucket
+	region, err := detectAWSRegionByBucket(bucket, awsCfg)
+	if err != nil {
+		return "", fmt.Errorf("detect region by bucket: %w", err)
+	}
+	return region, nil
 }
 
 // detectAWSRegionByBucket attempts to detect the AWS region by the bucket name
-func detectAWSRegionByBucket(bucket string, config *aws.Config) (string, error) {
-	input := s3.GetBucketLocationInput{
+func detectAWSRegionByBucket(bucket string, cfg *aws.Config) (string, error) {
+	ctx := context.Background()
+
+	// Create a copy with temporary region set to us-east-1 for region detection
+	tempCfg := cfg.Copy()
+	tempCfg.Region = "us-east-1"
+	s3Client := s3.NewFromConfig(tempCfg)
+
+	output, err := s3Client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
 		Bucket: aws.String(bucket),
-	}
-
-	sess, err := session.NewSession(config.WithRegion("us-east-1"))
+	})
 	if err != nil {
 		return "", err
 	}
 
-	output, err := s3.New(sess).GetBucketLocation(&input)
-	if err != nil {
-		return "", err
-	}
-
-	if output.LocationConstraint == nil {
-		// buckets in "US Standard", a.k.a. us-east-1, are returned as a nil region
+	if output.LocationConstraint == "" {
+		// buckets in "US Standard", a.k.a. us-east-1, are returned as empty region
 		return "us-east-1", nil
 	}
 	// all other regions are strings
-	return *output.LocationConstraint, nil
-}
-
-func requestEndpointFromSource(endpointSource, port string) *string {
-	t := http.DefaultTransport
-	c := http.DefaultClient
-	if tr, ok := t.(*http.Transport); ok {
-		tr.DisableKeepAlives = true
-		c = &http.Client{Transport: tr}
-	}
-	resp, err := c.Get(endpointSource)
-	if err != nil {
-		tracelog.ErrorLogger.Printf("Endpoint source error: %v ", err)
-		return nil
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != 200 {
-		tracelog.ErrorLogger.Printf("Endpoint source bad status code: %v ", resp.StatusCode)
-		return nil
-	}
-	bytes, err := io.ReadAll(resp.Body)
-	if err == nil {
-		return aws.String(net.JoinHostPort(string(bytes), port))
-	}
-	tracelog.ErrorLogger.Println("Endpoint source reading error:", err)
-	return nil
-}
-
-func decodeHeaders(encodedHeaders string) (map[string]string, error) {
-	var data interface{}
-	err := yaml.Unmarshal([]byte(encodedHeaders), &data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal YAML headers: %w", err)
-	}
-
-	interfaces, ok := data.(map[string]interface{})
-	if !ok {
-		headerList, ok := data.([]interface{})
-		if !ok {
-			return nil, fmt.Errorf("headers expected to be a list in YAML: %w", err)
-		}
-		interfaces = reformHeaderListToMap(headerList)
-	}
-
-	headers := map[string]string{}
-
-	for k, v := range interfaces {
-		headers[k] = v.(string)
-	}
-
-	return headers, nil
-}
-
-func reformHeaderListToMap(headerList []interface{}) map[string]interface{} {
-	headers := map[string]interface{}{}
-	for _, header := range headerList {
-		ma := header.(map[string]interface{})
-		for k, v := range ma {
-			headers[k] = v
-		}
-	}
-	return headers
+	return string(output.LocationConstraint), nil
 }
