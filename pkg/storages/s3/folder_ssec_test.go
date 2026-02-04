@@ -1,25 +1,24 @@
 ﻿package s3_test
 
 import (
+	"context"
 	"io"
 	"strings"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	walgs3 "github.com/wal-g/wal-g/pkg/storages/s3"
 )
 
 type MockS3ClientSSEC struct {
-	s3iface.S3API
 	LastGetObjectInput  *s3.GetObjectInput
 	LastHeadObjectInput *s3.HeadObjectInput
 	LastCopyObjectInput *s3.CopyObjectInput
 }
 
-func (m *MockS3ClientSSEC) GetObject(input *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
+func (m *MockS3ClientSSEC) GetObject(ctx context.Context, input *s3.GetObjectInput, opts ...func(*s3.Options)) (*s3.GetObjectOutput, error) {
 	m.LastGetObjectInput = input
 	output := &s3.GetObjectOutput{
 		Body: io.NopCloser(strings.NewReader("mock encrypted content")),
@@ -27,14 +26,31 @@ func (m *MockS3ClientSSEC) GetObject(input *s3.GetObjectInput) (*s3.GetObjectOut
 	return output, nil
 }
 
-func (m *MockS3ClientSSEC) HeadObject(input *s3.HeadObjectInput) (*s3.HeadObjectOutput, error) {
+func (m *MockS3ClientSSEC) HeadObject(ctx context.Context, input *s3.HeadObjectInput, opts ...func(*s3.Options)) (*s3.HeadObjectOutput, error) {
 	m.LastHeadObjectInput = input
 	return &s3.HeadObjectOutput{}, nil
 }
 
-func (m *MockS3ClientSSEC) CopyObject(input *s3.CopyObjectInput) (*s3.CopyObjectOutput, error) {
+func (m *MockS3ClientSSEC) CopyObject(ctx context.Context, input *s3.CopyObjectInput, opts ...func(*s3.Options)) (*s3.CopyObjectOutput, error) {
 	m.LastCopyObjectInput = input
 	return &s3.CopyObjectOutput{}, nil
+}
+
+// Stub implementations for S3API interface
+func (m *MockS3ClientSSEC) ListObjects(ctx context.Context, params *s3.ListObjectsInput, optFns ...func(*s3.Options)) (*s3.ListObjectsOutput, error) {
+	return &s3.ListObjectsOutput{}, nil
+}
+func (m *MockS3ClientSSEC) ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options)) (*s3.ListObjectsV2Output, error) {
+	return &s3.ListObjectsV2Output{}, nil
+}
+func (m *MockS3ClientSSEC) DeleteObjects(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error) {
+	return &s3.DeleteObjectsOutput{}, nil
+}
+func (m *MockS3ClientSSEC) ListObjectVersions(ctx context.Context, params *s3.ListObjectVersionsInput, optFns ...func(*s3.Options)) (*s3.ListObjectVersionsOutput, error) {
+	return &s3.ListObjectVersionsOutput{}, nil
+}
+func (m *MockS3ClientSSEC) GetBucketVersioning(ctx context.Context, params *s3.GetBucketVersioningInput, optFns ...func(*s3.Options)) (*s3.GetBucketVersioningOutput, error) {
+	return &s3.GetBucketVersioningOutput{}, nil
 }
 
 func createSSECUploader(sseAlgorithm, sseKey string) *walgs3.Uploader {
@@ -238,8 +254,8 @@ func TestCopyObject_WithSSEKMS_AddsCorrectHeadersForKMS(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mockClient.LastCopyObjectInput)
 
-	assert.NotNil(t, mockClient.LastCopyObjectInput.ServerSideEncryption)
-	assert.Equal(t, sseAlgorithm, *mockClient.LastCopyObjectInput.ServerSideEncryption)
+	assert.NotEqual(t, "", mockClient.LastCopyObjectInput.ServerSideEncryption)
+	assert.Equal(t, sseAlgorithm, string(mockClient.LastCopyObjectInput.ServerSideEncryption))
 
 	assert.NotNil(t, mockClient.LastCopyObjectInput.SSEKMSKeyId)
 	assert.Equal(t, sseKMSKeyID, *mockClient.LastCopyObjectInput.SSEKMSKeyId)
@@ -265,8 +281,8 @@ func TestCopyObject_WithSSES3_AddsCorrectHeadersForS3(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, mockClient.LastCopyObjectInput)
 
-	assert.NotNil(t, mockClient.LastCopyObjectInput.ServerSideEncryption)
-	assert.Equal(t, sseAlgorithm, *mockClient.LastCopyObjectInput.ServerSideEncryption)
+	assert.NotEqual(t, "", mockClient.LastCopyObjectInput.ServerSideEncryption)
+	assert.Equal(t, sseAlgorithm, string(mockClient.LastCopyObjectInput.ServerSideEncryption))
 
 	assert.Nil(t, mockClient.LastCopyObjectInput.SSEKMSKeyId)
 
