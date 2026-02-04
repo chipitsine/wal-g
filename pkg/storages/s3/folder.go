@@ -28,21 +28,25 @@ const (
 	VersioningDisabled = "disabled"
 )
 
-// S3API defines the S3 operations used by Folder
-type S3API interface {
+// API defines the S3 operations used by Folder
+type API interface {
 	HeadObject(ctx context.Context, params *s3.HeadObjectInput, optFns ...func(*s3.Options)) (*s3.HeadObjectOutput, error)
 	CopyObject(ctx context.Context, params *s3.CopyObjectInput, optFns ...func(*s3.Options)) (*s3.CopyObjectOutput, error)
 	GetObject(ctx context.Context, params *s3.GetObjectInput, optFns ...func(*s3.Options)) (*s3.GetObjectOutput, error)
 	ListObjects(ctx context.Context, params *s3.ListObjectsInput, optFns ...func(*s3.Options)) (*s3.ListObjectsOutput, error)
 	ListObjectsV2(ctx context.Context, params *s3.ListObjectsV2Input, optFns ...func(*s3.Options)) (*s3.ListObjectsV2Output, error)
 	DeleteObjects(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error)
-	ListObjectVersions(ctx context.Context, params *s3.ListObjectVersionsInput, optFns ...func(*s3.Options)) (*s3.ListObjectVersionsOutput, error)
-	GetBucketVersioning(ctx context.Context, params *s3.GetBucketVersioningInput, optFns ...func(*s3.Options)) (*s3.GetBucketVersioningOutput, error)
+	ListObjectVersions(
+		ctx context.Context, params *s3.ListObjectVersionsInput, optFns ...func(*s3.Options),
+	) (*s3.ListObjectVersionsOutput, error)
+	GetBucketVersioning(
+		ctx context.Context, params *s3.GetBucketVersioningInput, optFns ...func(*s3.Options),
+	) (*s3.GetBucketVersioningOutput, error)
 }
 
 // TODO: Unit tests
 type Folder struct {
-	s3API           S3API
+	s3API           API
 	uploader        *Uploader
 	bucket          *string
 	path            string
@@ -51,7 +55,7 @@ type Folder struct {
 }
 
 func NewFolder(
-	s3API S3API,
+	s3API API,
 	uploader *Uploader,
 	path string,
 	config *Config,
@@ -287,7 +291,8 @@ func (folder *Folder) collectDeleteMarkers(
 // collectVersions gathers object versions from S3. Filtering happens later to correctly handle pagination
 // (delete markers and corresponding versions can appear on different pages).
 func (folder *Folder) collectVersions(allVersions *[]versionInfo, versions []types.ObjectVersion) {
-	for _, object := range versions {
+	for i := range versions {
+		object := &versions[i]
 		// Some storages return root tar_partitions folder as a Key.
 		if *object.Key == folder.path {
 			continue
@@ -352,7 +357,7 @@ func (folder *Folder) listVersions(prefix *string, delimiter *string) ([]storage
 		Prefix:    prefix,
 		Delimiter: delimiter,
 	}
-	
+
 	paginator := s3.NewListObjectVersionsPaginator(folder.s3API, input)
 	for paginator.HasMorePages() {
 		output, err := paginator.NextPage(ctx)
@@ -411,7 +416,7 @@ func (folder *Folder) listObjectsPagesV1(prefix *string, delimiter *string, maxK
 			return err
 		}
 		listFunc(output.CommonPrefixes, output.Contents)
-		
+
 		if output.IsTruncated == nil || !*output.IsTruncated {
 			break
 		}
@@ -429,7 +434,7 @@ func (folder *Folder) listObjectsPagesV2(prefix *string, delimiter *string, maxK
 		Delimiter: delimiter,
 		MaxKeys:   maxKeys,
 	}
-	
+
 	paginator := s3.NewListObjectsV2Paginator(folder.s3API, s3Objects)
 	for paginator.HasMorePages() {
 		output, err := paginator.NextPage(ctx)
@@ -484,11 +489,13 @@ func (folder *Folder) getObjectVersions(key string) ([]types.ObjectIdentifier, e
 		return nil, err
 	}
 	list := make([]types.ObjectIdentifier, 0)
-	for _, version := range out.Versions {
+	for i := range out.Versions {
+		version := &out.Versions[i]
 		list = append(list, types.ObjectIdentifier{Key: version.Key, VersionId: version.VersionId})
 	}
 
-	for _, deleteMarker := range out.DeleteMarkers {
+	for i := range out.DeleteMarkers {
+		deleteMarker := &out.DeleteMarkers[i]
 		list = append(list, types.ObjectIdentifier{Key: deleteMarker.Key, VersionId: deleteMarker.VersionId})
 	}
 

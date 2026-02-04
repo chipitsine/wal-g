@@ -16,7 +16,7 @@ import (
 // that would cause a nil pointer panic if VersionId is not checked for nil
 type MockS3ClientForDeleteObjects struct {
 	s3iface.S3API
-	returnError      bool
+	returnError       bool
 	versioningEnabled bool
 }
 

@@ -20,15 +20,14 @@ import (
 
 func createSession(cfg *Config) (aws.Config, error) {
 	ctx := context.Background()
-	
+
 	var optFns []func(*config.LoadOptions) error
-	
+
 	// TODO: Configure CA cert if provided
 	// In SDK v2, custom CA bundles need to be configured through the HTTP client
 	// This requires creating a custom http.Transport with the CA pool
 	if cfg.CACertFile != "" {
-		// For now, log a warning that CA cert files are not yet supported in v2 migration
-		// This feature can be implemented later if needed
+		tracelog.WarningLogger.Printf("CA cert files are not yet fully supported in AWS SDK v2 migration: %s", cfg.CACertFile)
 	}
 
 	awsCfg, err := config.LoadDefaultConfig(ctx, optFns...)
@@ -46,7 +45,7 @@ func createSession(cfg *Config) (aws.Config, error) {
 
 func configureAWSConfig(awsCfg *aws.Config, cfg *Config) error {
 	ctx := context.Background()
-	
+
 	// Configure HTTP client with logging
 	// In SDK v2, we need to work with the underlying http.Client
 	baseClient := awsCfg.HTTPClient
@@ -90,7 +89,7 @@ func configureAWSConfig(awsCfg *aws.Config, cfg *Config) error {
 	if cfg.Region != "" {
 		awsCfg.Region = cfg.Region
 	} else {
-		region, err := detectAWSRegion(cfg.Bucket, cfg.Endpoint, *awsCfg)
+		region, err := detectAWSRegion(cfg.Bucket, cfg.Endpoint, awsCfg)
 		if err != nil {
 			return fmt.Errorf("AWS region isn't configured explicitly: detect region: %w", err)
 		}
@@ -102,7 +101,7 @@ func configureAWSConfig(awsCfg *aws.Config, cfg *Config) error {
 	return nil
 }
 
-func detectAWSRegion(bucket, endpoint string, awsCfg aws.Config) (string, error) {
+func detectAWSRegion(bucket, endpoint string, awsCfg *aws.Config) (string, error) {
 	// If a custom endpoint is configured and it's not an AWS endpoint,
 	// we're using an S3-compatible service (MinIO, Ceph, etc.)
 	// In this case, use "us-east-1" as the default region
@@ -110,7 +109,7 @@ func detectAWSRegion(bucket, endpoint string, awsCfg aws.Config) (string, error)
 	if endpoint != "" && !strings.HasSuffix(endpoint, ".amazonaws.com") {
 		return "us-east-1", nil
 	}
-	
+
 	// For AWS S3 or when no endpoint is specified, try to detect the region by bucket
 	region, err := detectAWSRegionByBucket(bucket, awsCfg)
 	if err != nil {
@@ -120,14 +119,14 @@ func detectAWSRegion(bucket, endpoint string, awsCfg aws.Config) (string, error)
 }
 
 // detectAWSRegionByBucket attempts to detect the AWS region by the bucket name
-func detectAWSRegionByBucket(bucket string, cfg aws.Config) (string, error) {
+func detectAWSRegionByBucket(bucket string, cfg *aws.Config) (string, error) {
 	ctx := context.Background()
-	
+
 	// Create a copy with temporary region set to us-east-1 for region detection
 	tempCfg := cfg.Copy()
 	tempCfg.Region = "us-east-1"
 	s3Client := s3.NewFromConfig(tempCfg)
-	
+
 	output, err := s3Client.GetBucketLocation(ctx, &s3.GetBucketLocationInput{
 		Bucket: aws.String(bucket),
 	})
@@ -141,65 +140,4 @@ func detectAWSRegionByBucket(bucket string, cfg aws.Config) (string, error) {
 	}
 	// all other regions are strings
 	return string(output.LocationConstraint), nil
-}
-
-func requestEndpointFromSource(endpointSource, port string) string {
-	t := http.DefaultTransport
-	c := http.DefaultClient
-	if tr, ok := t.(*http.Transport); ok {
-		tr.DisableKeepAlives = true
-		c = &http.Client{Transport: tr}
-	}
-	resp, err := c.Get(endpointSource)
-	if err != nil {
-		tracelog.ErrorLogger.Printf("Endpoint source error: %v ", err)
-		return ""
-	}
-	defer func() { _ = resp.Body.Close() }()
-	if resp.StatusCode != 200 {
-		tracelog.ErrorLogger.Printf("Endpoint source bad status code: %v ", resp.StatusCode)
-		return ""
-	}
-	bytes, err := io.ReadAll(resp.Body)
-	if err == nil {
-		return net.JoinHostPort(string(bytes), port)
-	}
-	tracelog.ErrorLogger.Println("Endpoint source reading error:", err)
-	return ""
-}
-
-func decodeHeaders(encodedHeaders string) (map[string]string, error) {
-	var data interface{}
-	err := yaml.Unmarshal([]byte(encodedHeaders), &data)
-	if err != nil {
-		return nil, fmt.Errorf("failed to unmarshal YAML headers: %w", err)
-	}
-
-	interfaces, ok := data.(map[string]interface{})
-	if !ok {
-		headerList, ok := data.([]interface{})
-		if !ok {
-			return nil, fmt.Errorf("headers expected to be a list in YAML: %w", err)
-		}
-		interfaces = reformHeaderListToMap(headerList)
-	}
-
-	headers := map[string]string{}
-
-	for k, v := range interfaces {
-		headers[k] = v.(string)
-	}
-
-	return headers, nil
-}
-
-func reformHeaderListToMap(headerList []interface{}) map[string]interface{} {
-	headers := map[string]interface{}{}
-	for _, header := range headerList {
-		ma := header.(map[string]interface{})
-		for k, v := range ma {
-			headers[k] = v
-		}
-	}
-	return headers
 }

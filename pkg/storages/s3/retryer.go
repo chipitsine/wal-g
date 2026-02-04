@@ -9,4 +9,3 @@ package s3
 // - aws.Retryer interface
 // - retry.Standard or retry.Adaptive strategies
 // - Custom middleware for specific error handling
-
