@@ -90,7 +90,7 @@ func configureAWSConfig(awsCfg *aws.Config, cfg *Config) error {
 	if cfg.Region != "" {
 		awsCfg.Region = cfg.Region
 	} else {
-		region, err := detectAWSRegion(cfg.Bucket, *awsCfg)
+		region, err := detectAWSRegion(cfg.Bucket, cfg.Endpoint, *awsCfg)
 		if err != nil {
 			return fmt.Errorf("AWS region isn't configured explicitly: detect region: %w", err)
 		}
@@ -102,23 +102,21 @@ func configureAWSConfig(awsCfg *aws.Config, cfg *Config) error {
 	return nil
 }
 
-func detectAWSRegion(bucket string, awsCfg aws.Config) (string, error) {
-	endpoint := ""
-	if awsCfg.BaseEndpoint != nil {
-		endpoint = *awsCfg.BaseEndpoint
+func detectAWSRegion(bucket, endpoint string, awsCfg aws.Config) (string, error) {
+	// If a custom endpoint is configured and it's not an AWS endpoint,
+	// we're using an S3-compatible service (MinIO, Ceph, etc.)
+	// In this case, use "us-east-1" as the default region
+	// ref: https://github.com/minio/cookbook/blob/master/docs/aws-sdk-for-go-with-minio.md
+	if endpoint != "" && !strings.HasSuffix(endpoint, ".amazonaws.com") {
+		return "us-east-1", nil
 	}
 	
-	if endpoint == "" ||
-		strings.HasSuffix(endpoint, ".amazonaws.com") {
-		region, err := detectAWSRegionByBucket(bucket, awsCfg)
-		if err != nil {
-			return "", fmt.Errorf("detect region by bucket: %w", err)
-		}
-		return region, nil
+	// For AWS S3 or when no endpoint is specified, try to detect the region by bucket
+	region, err := detectAWSRegionByBucket(bucket, awsCfg)
+	if err != nil {
+		return "", fmt.Errorf("detect region by bucket: %w", err)
 	}
-	// For S3 compatible services like Minio, Ceph etc. use `us-east-1` as region
-	// ref: https://github.com/minio/cookbook/blob/master/docs/aws-sdk-for-go-with-minio.md
-	return "us-east-1", nil
+	return region, nil
 }
 
 // detectAWSRegionByBucket attempts to detect the AWS region by the bucket name
