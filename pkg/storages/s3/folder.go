@@ -460,7 +460,11 @@ func (folder *Folder) DeleteObjects(objectRelativePaths []string) error {
 		_, err := folder.s3API.DeleteObjects(ctx, input)
 		if err != nil {
 			for _, obj := range part {
-				tracelog.DebugLogger.Printf("object %s version %s", *obj.Key, *obj.VersionId)
+				versionStr := "none"
+				if obj.VersionId != nil {
+					versionStr = *obj.VersionId
+				}
+				tracelog.DebugLogger.Printf("object %s version %s", *obj.Key, versionStr)
 			}
 			return errors.Wrapf(err, "failed to delete s3 objects")
 		}
