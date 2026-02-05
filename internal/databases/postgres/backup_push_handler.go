@@ -527,11 +527,21 @@ func (bh *BackupHandler) collectDatabaseNamesMetadata() (DatabasesByNames, error
 
 // NewBackupHandler returns a backup handler object, which can handle the backup
 func NewBackupHandler(arguments BackupArguments) (bh *BackupHandler, err error) {
+	return NewBackupHandlerWithConnect(arguments, nil)
+}
+
+// NewBackupHandlerWithConnect returns a backup handler with a custom connect function
+func NewBackupHandlerWithConnect(arguments BackupArguments, connectFunc func(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, error)) (bh *BackupHandler, err error) {
+	// Set the connect function if provided
+	if connectFunc != nil {
+		arguments.connectFunc = connectFunc
+	}
+	
 	// RemoteBackup is triggered by not passing PGDATA to wal-g,
 	// and version cannot be read easily using replication connection.
 	// Retrieve both with this helper function which uses a temp connection to postgres.
 
-	pgInfo, _, err := GetPgServerInfo(false)
+	pgInfo, _, err := GetPgServerInfo(false, arguments.connectFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -585,10 +595,17 @@ func (bh *BackupHandler) runRemoteBackup(ctx context.Context) *StreamingBaseBack
 	return baseBackup
 }
 
-func GetPgServerInfo(keepRunner bool) (pgInfo BackupPgInfo, runner *PgQueryRunner, err error) {
+func GetPgServerInfo(keepRunner bool, connectFunc ...func(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, error)) (pgInfo BackupPgInfo, runner *PgQueryRunner, err error) {
 	// Creating a temporary connection to read slot info and wal_segment_size
 	tracelog.DebugLogger.Println("Initializing tmp connection to read Postgres info")
-	tmpConn, err := Connect()
+	
+	var tmpConn *pgx.Conn
+	if len(connectFunc) > 0 && connectFunc[0] != nil {
+		tmpConn, err = connectFunc[0]()
+	} else {
+		tmpConn, err = Connect()
+	}
+	
 	if err != nil {
 		return pgInfo, nil, err
 	}

@@ -7,13 +7,11 @@ import (
 )
 
 func NewSegBackupHandler(arguments postgres.BackupArguments) (*postgres.BackupHandler, error) {
-	bh, err := postgres.NewBackupHandler(arguments)
+	// Create the handler with GP-specific connection function for segments
+	bh, err := postgres.NewBackupHandlerWithConnect(arguments, Connect)
 	if err != nil {
 		return nil, err
 	}
-
-	// Set greenplum-specific connection function for segment connections
-	bh.SetConnectFunc(Connect)
 
 	composerInitFunc := func(handler *postgres.BackupHandler) error {
 		queryRunner := ToGpQueryRunner(handler.Workers.QueryRunner)
