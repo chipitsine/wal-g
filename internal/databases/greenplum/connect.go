@@ -6,7 +6,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/pkg/errors"
 	"github.com/wal-g/tracelog"
-	"github.com/wal-g/wal-g/internal/databases/postgres"
 )
 
 // Connect establishes a connection to GreenPlum using
@@ -55,7 +54,7 @@ func Connect(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, er
 }
 
 // tryConnectToGpSegment attempts to connect to a GreenPlum segment in utility mode
-// by setting gp_role and pg_session_role runtime parameters
+// by setting gp_role and gp_session_role runtime parameters
 func tryConnectToGpSegment(config *pgx.ConnConfig) (*pgx.Conn, error) {
 	config.RuntimeParams["gp_role"] = "utility"
 	conn, err := pgx.ConnectConfig(context.TODO(), config)
@@ -63,19 +62,6 @@ func tryConnectToGpSegment(config *pgx.ConnConfig) (*pgx.Conn, error) {
 	if err != nil {
 		config.RuntimeParams["gp_session_role"] = "utility"
 		conn, err = pgx.ConnectConfig(context.TODO(), config)
-	}
-	return conn, err
-}
-
-// ConnectWithFallback is a convenience wrapper that tries to connect using postgres.Connect first,
-// and falls back to GreenPlum-specific connection if that fails.
-// This is useful for maintaining backward compatibility.
-func ConnectWithFallback(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, error) {
-	// Try standard postgres connection first
-	conn, err := postgres.Connect(configOptions...)
-	if err != nil {
-		// Fall back to GreenPlum connection
-		conn, err = Connect(configOptions...)
 	}
 	return conn, err
 }
