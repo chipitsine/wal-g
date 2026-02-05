@@ -12,6 +12,9 @@ func NewSegBackupHandler(arguments postgres.BackupArguments) (*postgres.BackupHa
 		return nil, err
 	}
 
+	// Set greenplum-specific connection function for segment connections
+	bh.SetConnectFunc(Connect)
+
 	composerInitFunc := func(handler *postgres.BackupHandler) error {
 		queryRunner := ToGpQueryRunner(handler.Workers.QueryRunner)
 		relStorageMap, err := NewAoRelFileStorageMap(queryRunner)

@@ -67,6 +67,7 @@ type BackupArguments struct {
 	deltaConfigurator        DeltaBackupConfigurator
 	withoutFilesMetadata     bool
 	composerInitFunc         func(handler *BackupHandler) error
+	connectFunc              func(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, error)
 	preventConcurrentBackups bool
 }
 
@@ -200,7 +201,16 @@ func (bh *BackupHandler) createAndPushBackup(ctx context.Context) {
 func (bh *BackupHandler) startBackup() error {
 	// Connect to postgres and start/finish a nonexclusive backup.
 	tracelog.DebugLogger.Println("Connecting to Postgres.")
-	conn, err := Connect()
+	
+	// Use custom connect function if provided, otherwise use default Connect()
+	var conn *pgx.Conn
+	var err error
+	if bh.Arguments.connectFunc != nil {
+		conn, err = bh.Arguments.connectFunc()
+	} else {
+		conn, err = Connect()
+	}
+	
 	if err != nil {
 		return err
 	}
@@ -314,6 +324,10 @@ func (bh *BackupHandler) markBackups(folder storage.Folder, sentinelDto BackupSe
 
 func (bh *BackupHandler) SetComposerInitFunc(initFunc func(handler *BackupHandler) error) {
 	bh.Arguments.composerInitFunc = initFunc
+}
+
+func (bh *BackupHandler) SetConnectFunc(connectFunc func(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, error)) {
+	bh.Arguments.connectFunc = connectFunc
 }
 
 func configureTarBallComposer(bh *BackupHandler, tarBallComposerType TarBallComposerType) error {
