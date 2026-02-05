@@ -31,10 +31,10 @@ func Connect(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, er
 		}
 	}
 
-	// Try standard connection first
+	// Try standard connection first (without GP-specific parameters)
 	conn, err := pgx.ConnectConfig(context.TODO(), config)
 	if err != nil {
-		// Try to connect to GP segment with utility mode
+		// If standard connection fails, try to connect to GP segment with utility mode
 		conn, err = tryConnectToGpSegment(config)
 
 		if err != nil && config.Host != "localhost" {
@@ -53,13 +53,15 @@ func Connect(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, er
 	return conn, nil
 }
 
-// tryConnectToGpSegment attempts to connect to a GreenPlum segment in utility mode
-// by setting gp_role and gp_session_role runtime parameters
+// tryConnectToGpSegment attempts to connect to a GreenPlum segment in utility mode.
+// It first tries with gp_role parameter, and if that fails, adds gp_session_role as well.
+// Note: Both parameters will be set on the second attempt for maximum compatibility.
 func tryConnectToGpSegment(config *pgx.ConnConfig) (*pgx.Conn, error) {
 	config.RuntimeParams["gp_role"] = "utility"
 	conn, err := pgx.ConnectConfig(context.TODO(), config)
 
 	if err != nil {
+		// Add gp_session_role (in addition to gp_role) for older GreenPlum versions
 		config.RuntimeParams["gp_session_role"] = "utility"
 		conn, err = pgx.ConnectConfig(context.TODO(), config)
 	}
