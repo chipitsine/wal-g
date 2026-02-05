@@ -107,7 +107,7 @@ func NewRestorePointCreator(pointName string) (rpc *RestorePointCreator, err err
 		return nil, err
 	}
 
-	conn, err := postgres.Connect()
+	conn, err := Connect()
 	if err != nil {
 		return nil, err
 	}
