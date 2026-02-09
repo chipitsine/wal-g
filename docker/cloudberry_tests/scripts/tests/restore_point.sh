@@ -31,6 +31,7 @@ sleep 2
 
 check_wal_upload() {
     local path=$1
+    # Wait up to 2 minutes (60 attempts × 2 seconds) for WAL files to be uploaded
     local max_attempts=60
     local attempt=1
 
@@ -46,7 +47,8 @@ check_wal_upload() {
         fi
         
         echo "Found $count WAL files in $path, waiting... (attempt $attempt/$max_attempts)"
-        sleep 2
+        # Use 5-second interval to reduce S3 API calls while still providing reasonable timeout
+        sleep 5
         attempt=$((attempt + 1))
     done
     
