@@ -31,7 +31,7 @@ sleep 2
 
 check_wal_upload() {
     local path=$1
-    # Wait up to 2 minutes (60 attempts × 2 seconds) for WAL files to be uploaded
+    # Wait up to 5 minutes (60 attempts × 5 seconds) for WAL files to be uploaded
     local max_attempts=60
     local attempt=1
 
