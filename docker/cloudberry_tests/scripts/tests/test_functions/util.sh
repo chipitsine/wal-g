@@ -74,7 +74,7 @@ prepare_cluster() {
   # This start will work as expected:
   /usr/local/gpdb_src/bin/gpstart -a -t 180 || true
   # repair if anything is broken:
-  /usr/local/gpdb_src/bin/gprecoverseg -F -a 2>/dev/null || true
+  /usr/local/gpdb_src/bin/gprecoverseg -F -a 2>&1 | grep -v "GPDB Mirroring replication is not configured" || true
   # cleanup:
   /usr/local/gpdb_src/bin/gpstop -a -M fast || true
   # always remove recovery.conf: so, Cloudberry can be safely restarted
