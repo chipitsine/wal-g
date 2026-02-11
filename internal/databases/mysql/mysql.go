@@ -347,19 +347,21 @@ func provideLogs(folder storage.Folder, dstDir string, startTS, endTS time.Time,
 			}
 		}
 
-		// add file to provider
-		err = p.AddObject(logFile)
-		p.HandleError(err)
-		if err != nil {
-			return
-		}
-
+		// Check timestamp before adding file to provider to avoid race condition
+		// where consumer deletes the file before we can read it.
 		timestamp, err := GetBinlogStartTimestamp(binlogPath, gomysql.MySQLFlavor)
 		p.HandleError(err)
 		if err != nil {
 			return
 		}
 		if timestamp.After(endTS) {
+			return
+		}
+
+		// add file to provider
+		err = p.AddObject(logFile)
+		p.HandleError(err)
+		if err != nil {
 			return
 		}
 	}
