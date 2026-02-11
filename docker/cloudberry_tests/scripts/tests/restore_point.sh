@@ -16,7 +16,12 @@ setup_wal_archiving
 wal-g --config=${TMP_CONFIG} delete everything FORCE --confirm
 
 wal-g create-restore-point rp1 --config=${TMP_CONFIG}
+# Wait a bit for the archiver to process the WAL switch
+sleep 2
+
 wal-g create-restore-point rp2 --config=${TMP_CONFIG}
+# Wait for the archiver to process the second WAL switch
+sleep 2
 
 # Check whether the WAL log is correctly switched and uploaded to S3 after create-restore-point
 # gpadmin@10f4a227f02b:/usr/local/gpdb_src$ wal-g st ls  segments_005/seg0/wal_005/ --config=${TMP_CONFIG}
@@ -24,16 +29,33 @@ wal-g create-restore-point rp2 --config=${TMP_CONFIG}
 # obj  4624920 2025-05-21 07:17:16.052 +0000 UTC 000000010000000000000001.lz4
 # obj  264275  2025-05-21 07:26:06.265 +0000 UTC 000000010000000000000002.lz4
 
-#wait for wal-g to upload WALs
-sleep 5
-
 check_wal_upload() {
     local path=$1
+    # Wait up to 5 minutes (60 attempts × 5 seconds) for WAL files to be uploaded
+    local max_attempts=60
+    local attempt=1
 
+    echo "Waiting for WAL files to be uploaded to $path..."
+    
+    while [ $attempt -le $max_attempts ]; do
+        local count=$(wal-g st ls "$path" --config=${TMP_CONFIG} | awk '/^obj/ {count++} END {print count+0}')
+        
+        if [ "$count" -ge 2 ]; then
+            echo "Found $count WAL files in $path (attempt $attempt/$max_attempts)"
+            wal-g st ls "$path" --config=${TMP_CONFIG}
+            return 0
+        fi
+        
+        echo "Found $count WAL files in $path, waiting... (attempt $attempt/$max_attempts)"
+        # Use 5-second interval to reduce S3 API calls while still providing reasonable timeout
+        sleep 5
+        attempt=$((attempt + 1))
+    done
+    
+    echo "Error: WAL files after create-restore-point were not correctly uploaded to S3 for $path"
+    echo "Final listing:"
     wal-g st ls "$path" --config=${TMP_CONFIG}
-
-    wal-g st ls "$path" --config=${TMP_CONFIG} \
-        | awk '/^obj/ {count++} END {exit !(count >= 2)}'
+    return 1
 }
 
 # Check each segment
@@ -44,7 +66,6 @@ for seg_path in \
     segments_005/seg2/wal_005/
 do
     if ! check_wal_upload "$seg_path"; then
-        echo "Error: WAL files after create-restore-point were not correctly uploaded to S3 for $seg_path"
         exit 1
     fi
 done
