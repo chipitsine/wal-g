@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
 	"github.com/wal-g/wal-g/internal"
@@ -28,6 +29,9 @@ import (
 	"github.com/wal-g/wal-g/pkg/storages/storage"
 	"github.com/wal-g/wal-g/utility"
 )
+
+// PgConnectFunc defines the type for a PostgreSQL connection function
+type PgConnectFunc func(configOptions ...func(config *pgx.ConnConfig) error) (*pgx.Conn, error)
 
 type backupFromFuture struct {
 	error
@@ -67,6 +71,7 @@ type BackupArguments struct {
 	deltaConfigurator        DeltaBackupConfigurator
 	withoutFilesMetadata     bool
 	composerInitFunc         func(handler *BackupHandler) error
+	connectFunc              PgConnectFunc
 	preventConcurrentBackups bool
 }
 
@@ -200,7 +205,16 @@ func (bh *BackupHandler) createAndPushBackup(ctx context.Context) {
 func (bh *BackupHandler) startBackup() error {
 	// Connect to postgres and start/finish a nonexclusive backup.
 	tracelog.DebugLogger.Println("Connecting to Postgres.")
-	conn, err := Connect()
+
+	// Use custom connect function if provided, otherwise use default Connect()
+	var conn *pgx.Conn
+	var err error
+	if bh.Arguments.connectFunc != nil {
+		conn, err = bh.Arguments.connectFunc()
+	} else {
+		conn, err = Connect()
+	}
+
 	if err != nil {
 		return err
 	}
@@ -314,6 +328,10 @@ func (bh *BackupHandler) markBackups(folder storage.Folder, sentinelDto BackupSe
 
 func (bh *BackupHandler) SetComposerInitFunc(initFunc func(handler *BackupHandler) error) {
 	bh.Arguments.composerInitFunc = initFunc
+}
+
+func (bh *BackupHandler) SetConnectFunc(connectFunc PgConnectFunc) {
+	bh.Arguments.connectFunc = connectFunc
 }
 
 func configureTarBallComposer(bh *BackupHandler, tarBallComposerType TarBallComposerType) error {
@@ -512,11 +530,23 @@ func (bh *BackupHandler) collectDatabaseNamesMetadata() (DatabasesByNames, error
 
 // NewBackupHandler returns a backup handler object, which can handle the backup
 func NewBackupHandler(arguments BackupArguments) (bh *BackupHandler, err error) {
+	return NewBackupHandlerWithConnect(arguments, nil)
+}
+
+// NewBackupHandlerWithConnect returns a backup handler with a custom connect function
+func NewBackupHandlerWithConnect(
+	arguments BackupArguments, connectFunc PgConnectFunc,
+) (bh *BackupHandler, err error) {
+	// Set the connect function if provided
+	if connectFunc != nil {
+		arguments.connectFunc = connectFunc
+	}
+
 	// RemoteBackup is triggered by not passing PGDATA to wal-g,
 	// and version cannot be read easily using replication connection.
 	// Retrieve both with this helper function which uses a temp connection to postgres.
 
-	pgInfo, _, err := GetPgServerInfo(false)
+	pgInfo, _, err := GetPgServerInfo(false, arguments.connectFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -570,10 +600,19 @@ func (bh *BackupHandler) runRemoteBackup(ctx context.Context) *StreamingBaseBack
 	return baseBackup
 }
 
-func GetPgServerInfo(keepRunner bool) (pgInfo BackupPgInfo, runner *PgQueryRunner, err error) {
+func GetPgServerInfo(
+	keepRunner bool, connectFunc ...PgConnectFunc,
+) (pgInfo BackupPgInfo, runner *PgQueryRunner, err error) {
 	// Creating a temporary connection to read slot info and wal_segment_size
 	tracelog.DebugLogger.Println("Initializing tmp connection to read Postgres info")
-	tmpConn, err := Connect()
+
+	var tmpConn *pgx.Conn
+	if len(connectFunc) > 0 && connectFunc[0] != nil {
+		tmpConn, err = connectFunc[0]()
+	} else {
+		tmpConn, err = Connect()
+	}
+
 	if err != nil {
 		return pgInfo, nil, err
 	}

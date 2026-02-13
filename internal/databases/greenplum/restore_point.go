@@ -19,7 +19,6 @@ import (
 
 	"github.com/wal-g/wal-g/internal"
 	conf "github.com/wal-g/wal-g/internal/config"
-	"github.com/wal-g/wal-g/internal/databases/postgres"
 	"github.com/wal-g/wal-g/utility"
 )
 
@@ -107,7 +106,7 @@ func NewRestorePointCreator(pointName string) (rpc *RestorePointCreator, err err
 		return nil, err
 	}
 
-	conn, err := postgres.Connect()
+	conn, err := Connect()
 	if err != nil {
 		return nil, err
 	}

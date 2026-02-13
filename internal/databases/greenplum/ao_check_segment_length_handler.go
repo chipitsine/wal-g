@@ -10,7 +10,6 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/wal-g/tracelog"
 	"github.com/wal-g/wal-g/internal"
-	"github.com/wal-g/wal-g/internal/databases/postgres"
 	"github.com/wal-g/wal-g/pkg/storages/storage"
 	"github.com/wal-g/wal-g/utility"
 )
@@ -166,7 +165,7 @@ func (checker *AOLengthCheckSegmentHandler) checkFileSizes(AOTablesSize map[stri
 }
 
 func (checker *AOLengthCheckSegmentHandler) connect(db string) (*pgx.Conn, error) {
-	return postgres.Connect(func(config *pgx.ConnConfig) error {
+	return Connect(func(config *pgx.ConnConfig) error {
 		a, err := strconv.Atoi(checker.port)
 		if err != nil {
 			return err
