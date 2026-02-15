@@ -63,6 +63,24 @@ func TestConfigureLogging_WhenLogDestinationSettingIsSet(t *testing.T) {
 	resetToDefaults()
 }
 
+func TestSQLServerFailoverStorageSettings(t *testing.T) {
+	viper.Reset()
+	internal.ConfigureSettings(config.SQLSERVER)
+	config.InitConfig()
+
+	// Verify that failover storage settings are in the AllowedSettings map
+	assert.True(t, config.AllowedSettings[config.FailoverStoragesCheckTimeout],
+		"WALG_FAILOVER_STORAGES_CHECK_TIMEOUT should be allowed for SQL Server")
+	assert.True(t, config.AllowedSettings[config.FailoverStorageCacheLifetime],
+		"WALG_FAILOVER_STORAGES_CACHE_LIFETIME should be allowed for SQL Server")
+	assert.True(t, config.AllowedSettings[config.FailoverStorages],
+		"WALG_FAILOVER_STORAGES should be allowed for SQL Server")
+	assert.True(t, config.AllowedSettings[config.FailoverStoragesCheck],
+		"WALG_FAILOVER_STORAGES_CHECK should be allowed for SQL Server")
+
+	resetToDefaults()
+}
+
 func resetToDefaults() {
 	viper.Reset()
 	internal.ConfigureSettings(config.PG)
