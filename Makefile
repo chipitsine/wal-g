@@ -238,6 +238,7 @@ clean_redis_features:
 	cd tests_func/ && REDIS_VERSION=$(REDIS_VERSION) go test -v -count=1  -timeout 5m --tf.test=false --tf.debug=false --tf.clean=true --tf.stop=true --tf.database=redis
 
 # Run both AOF and RDB tests sequentially to save infrastructure setup time
+# Note: If AOF test fails, cleanup runs with --tf.test=false to only clean up (no tests)
 redis_combined_features:
 	set -e
 	make go_deps
