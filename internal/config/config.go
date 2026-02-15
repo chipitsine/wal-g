@@ -567,6 +567,19 @@ var (
 		SQLServerConnectionString: true,
 		SQLServerDBConcurrency:    true,
 		SQLServerReuseProxy:       true,
+
+		// Failover storages
+		FailoverStorages:                     true,
+		FailoverStoragesCheck:                true,
+		FailoverStoragesCheckTimeout:         true,
+		FailoverStorageCacheLifetime:         true,
+		FailoverStorageCacheEMAAliveLimit:    true,
+		FailoverStorageCacheEMADeadLimit:     true,
+		FailoverStorageCacheEMAAlphaAliveMax: true,
+		FailoverStorageCacheEMAAlphaAliveMin: true,
+		FailoverStorageCacheEMAAlphaDeadMax:  true,
+		FailoverStorageCacheEMAAlphaDeadMin:  true,
+		FailoverStoragesCheckSize:            true,
 	}
 
 	MysqlAllowedSettings = map[string]bool{

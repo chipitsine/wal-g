@@ -63,6 +63,26 @@ func TestConfigureLogging_WhenLogDestinationSettingIsSet(t *testing.T) {
 	resetToDefaults()
 }
 
+func TestSQLServerFailoverStorageSettings(t *testing.T) {
+	viper.Reset()
+	internal.ConfigureSettings(config.SQLSERVER)
+	config.InitConfig()
+
+	// Set failover storage settings
+	viper.Set(config.FailoverStoragesCheckTimeout, "30s")
+	viper.Set(config.FailoverStorageCacheLifetime, "15m")
+
+	// Create a new viper instance to test CheckAllowedSettings
+	testConfig := viper.New()
+	testConfig.Set(config.FailoverStoragesCheckTimeout, "30s")
+	testConfig.Set(config.FailoverStorageCacheLifetime, "15m")
+
+	// This should not produce warnings since we added these settings to SQLServerAllowedSettings
+	config.CheckAllowedSettings(testConfig)
+
+	resetToDefaults()
+}
+
 func resetToDefaults() {
 	viper.Reset()
 	internal.ConfigureSettings(config.PG)
