@@ -24,6 +24,10 @@ jobs:
     name: Build images
     runs-on: ubuntu-latest
     steps:
+
+       - name: Update Docker to the latest
+         uses: docker/setup-docker-action@v4
+
       #  use cache to pass docker images to the test jobs
       - name: Docker images caching
         id: cache-images
@@ -81,6 +85,9 @@ jobs:
 
       - name: Check out code into the Go module directory
         uses: actions/checkout@v6
+
+      - name: Update Docker to the latest
+        uses: docker/setup-docker-action@v4
 
       - name: Set up Go 1.x
         uses: actions/setup-go@v6
