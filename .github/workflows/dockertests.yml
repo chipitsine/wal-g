@@ -25,8 +25,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
 
-       - name: Update Docker to the latest
-         uses: docker/setup-docker-action@v4
+      - name: Update Docker to the latest
+        uses: docker/setup-docker-action@v4
 
       #  use cache to pass docker images to the test jobs
       - name: Docker images caching
