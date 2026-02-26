@@ -1,7 +1,5 @@
-//go:build brotli && !windows && !(darwin && arm64)
+//go:build brotli
 // +build brotli
-// +build !windows
-// +build !darwin !arm64
 
 package compression
 

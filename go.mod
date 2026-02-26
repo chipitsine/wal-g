@@ -54,8 +54,8 @@ require (
 	github.com/ProtonMail/go-crypto v1.3.0
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.2.3
 	github.com/aliyun/credentials-go v1.4.5
+	github.com/andybalholm/brotli v1.2.0
 	github.com/cactus/go-statsd-client/v5 v5.0.0
-	github.com/google/brotli/go/cbrotli v0.0.0-20220110100810-f4153a09f87c
 	github.com/klauspost/compress v1.18.2
 	github.com/mongodb/mongo-tools v0.0.0-20240724183527-6d4f001be3fc
 	github.com/ncw/directio v1.0.5
@@ -72,7 +72,6 @@ require (
 
 require (
 	github.com/alibabacloud-go/debug v1.0.1 // indirect
-	github.com/andybalholm/brotli v1.2.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
 	github.com/containerd/log v0.1.0 // indirect

@@ -52,9 +52,9 @@ endif
 
 .PHONY: unittest fmt lint clean install_tools
 
-test: deps unittest pg_build mysql_build redis_build mongo_build gp_build cloudberry_build unlink_brotli pg_integration_test mysql_integration_test redis_integration_test fdb_integration_test gp_integration_test cloudberry_integration_test etcd_integration_test
+test: deps unittest pg_build mysql_build redis_build mongo_build gp_build cloudberry_build pg_integration_test mysql_integration_test redis_integration_test fdb_integration_test gp_integration_test cloudberry_integration_test etcd_integration_test
 
-pg_test: deps pg_build unlink_brotli pg_integration_test
+pg_test: deps pg_build pg_integration_test
 
 pg_build: $(CMD_FILES) $(PKG_FILES)
 	(cd $(MAIN_PG_PATH) && go build -mod vendor -tags "$(BUILD_TAGS)" -o wal-g -gcflags "$(BUILD_GCFLAGS)" -ldflags "-s -w -X github.com/wal-g/wal-g/cmd/pg.buildDate=`date -u +%Y.%m.%d_%H:%M:%S` -X github.com/wal-g/wal-g/cmd/pg.gitRevision=$(GIT_REVISION) -X github.com/wal-g/wal-g/cmd/pg.walgVersion=$(WALG_VERSION)")
@@ -130,8 +130,8 @@ pg_clean:
 pg_install: pg_build
 	mv $(MAIN_PG_PATH)/wal-g $(GOBIN)/wal-g
 
-mysql_base: deps mysql_build unlink_brotli
-mysql_test: deps mysql_build unlink_brotli mysql_integration_test
+mysql_base: deps mysql_build
+mysql_test: deps mysql_build mysql_integration_test
 
 mysql_build: $(CMD_FILES) $(PKG_FILES)
 	(cd $(MAIN_MYSQL_PATH) && go build -mod vendor -tags "$(BUILD_TAGS)" -o wal-g -gcflags "$(BUILD_GCFLAGS)" -ldflags "-s -w -X github.com/wal-g/wal-g/cmd/mysql.buildDate=`date -u +%Y.%m.%d_%H:%M:%S` -X github.com/wal-g/wal-g/cmd/mysql.gitRevision=$(GIT_REVISION) -X github.com/wal-g/wal-g/cmd/mysql.walgVersion=$(WALG_VERSION)")
@@ -149,12 +149,11 @@ load_docker_common:
 		docker load -i ${CACHE_FILE_GOLANG};\
 	fi
 
-mysql_integration_test: deps mysql_build unlink_brotli load_docker_common
-	./link_brotli.sh
+mysql_integration_test: deps mysql_build load_docker_common
 	docker compose build mysql && docker compose build $(MYSQL_TEST)
 	docker compose up --force-recreate --exit-code-from $(MYSQL_TEST) $(MYSQL_TEST)
 
-mysql8_integration_test: go_deps unlink_brotli load_docker_common
+mysql8_integration_test: go_deps load_docker_common
 	docker compose build mysql8 && docker compose build $(MYSQL8_TEST)
 	docker compose up --force-recreate --exit-code-from $(MYSQL8_TEST) $(MYSQL8_TEST)
 
@@ -165,14 +164,13 @@ mysql_clean:
 mysql_install: mysql_build
 	mv $(MAIN_MYSQL_PATH)/wal-g $(GOBIN)/wal-g
 
-mariadb_test: deps mysql_build unlink_brotli mariadb_integration_test
+mariadb_test: deps mysql_build mariadb_integration_test
 
-mariadb_integration_test: unlink_brotli load_docker_common
-	./link_brotli.sh
+mariadb_integration_test: load_docker_common
 	docker compose build mariadb && docker compose build mariadb_tests
 	docker compose up --force-recreate --exit-code-from mariadb_tests mariadb_tests
 
-mongo_test: deps mongo_build unlink_brotli
+mongo_test: deps mongo_build
 
 mongo_build: $(CMD_FILES) $(PKG_FILES)
 	(cd $(MAIN_MONGO_PATH) && go build $(BUILD_ARGS) -mod vendor -tags "$(BUILD_TAGS)" -o wal-g -gcflags "$(BUILD_GCFLAGS)" -ldflags "-s -w -X github.com/wal-g/wal-g/cmd/mongo.buildDate=`date -u +%Y.%m.%d_%H:%M:%S` -X github.com/wal-g/wal-g/cmd/mongo.gitRevision=$(GIT_REVISION) -X github.com/wal-g/wal-g/cmd/mongo.walgVersion=$(WALG_VERSION)")
@@ -212,7 +210,7 @@ fdb_integration_test: load_docker_common
 	docker compose build fdb_tests
 	docker compose up --force-recreate --renew-anon-volumes --exit-code-from fdb_tests fdb_tests
 
-redis_test: deps redis_build unlink_brotli redis_integration_test
+redis_test: deps redis_build redis_integration_test
 
 redis_build: $(CMD_FILES) $(PKG_FILES)
 	(cd $(MAIN_REDIS_PATH) && go build -mod vendor -tags "$(BUILD_TAGS)" -o wal-g -gcflags "$(BUILD_GCFLAGS)" -ldflags "-s -w -X github.com/wal-g/wal-g/cmd/redis.buildDate=`date -u +%Y.%m.%d_%H:%M:%S` -X github.com/wal-g/wal-g/cmd/redis.gitRevision=$(GIT_REVISION) -X github.com/wal-g/wal-g/cmd/redis.walgVersion=$(WALG_VERSION)")
@@ -237,7 +235,7 @@ clean_redis_features:
 	set -e
 	cd tests_func/ && REDIS_VERSION=$(REDIS_VERSION) go test -v -count=1  -timeout 5m --tf.test=false --tf.debug=false --tf.clean=true --tf.stop=true --tf.database=redis
 
-etcd_test: deps etcd_build unlink_brotli etcd_integration_test
+etcd_test: deps etcd_build etcd_integration_test
 
 etcd_build: $(CMD_FILES) $(PKG_FILES)
 	(cd $(MAIN_ETCD_PATH) && go build -mod vendor -tags "$(BUILD_TAGS)" -o wal-g -gcflags "$(BUILD_GCFLAGS)" -ldflags "-s -w -X github.com/wal-g/wal-g/cmd/etcd.buildDate=`date -u +%Y.%m.%d_%H:%M:%S` -X github.com/wal-g/wal-g/cmd/etcd.gitRevision=$(GIT_REVISION) -X github.com/wal-g/wal-g/cmd/etcd.walgVersion=$(WALG_VERSION)")
@@ -265,7 +263,7 @@ gp_clean:
 gp_install: gp_build
 	mv $(MAIN_GP_PATH)/wal-g $(GOBIN)/wal-g
 
-gp_test: deps gp_build unlink_brotli gp_integration_test
+gp_test: deps gp_build gp_integration_test
 
 gp_integration_test: load_docker_common
 	docker compose build gp
@@ -278,14 +276,14 @@ cloudberry_clean: gp_clean
 
 cloudberry_install: gp_install
 
-cloudberry_test: deps cloudberry_build unlink_brotli cloudberry_integration_test
+cloudberry_test: deps cloudberry_build cloudberry_integration_test
 
 cloudberry_integration_test: load_docker_common
 	docker compose build cloudberry
 	docker compose build cloudberry_tests
 	docker compose up s3 cloudberry_tests --force-recreate --exit-code-from cloudberry_tests
 
-st_test: deps pg_build unlink_brotli st_integration_test
+st_test: deps pg_build st_integration_test
 
 st_integration_test: load_docker_common
 	docker compose build st_tests
@@ -328,32 +326,22 @@ deps: go_deps link_external_deps
 
 go_deps:
 	git submodule update --init
-	cp CMakeLists-brotli.txt submodules/brotli/CMakeLists.txt
 	go mod vendor
 ifdef USE_LZO
 	sed -i 's|\(#cgo LDFLAGS:\) .*|\1 -Wl,-Bstatic -llzo2 -Wl,-Bdynamic|' vendor/github.com/cyberdelia/lzo/lzo.go
 endif
 
-link_external_deps: link_brotli link_libsodium
+link_external_deps: link_libsodium
 
-unlink_external_deps: unlink_brotli unlink_libsodium
+unlink_external_deps: unlink_libsodium
 
 install:
 	@echo "Nothing to be done. Use pg_install/mysql_install/mongo_install/fdb_install/gp_install/etcd_install... instead."
-
-link_brotli:
-	@if [ -n "${USE_BROTLI}" ]; then ./link_brotli.sh; fi
-	@if [ -z "${USE_BROTLI}" ]; then echo "info: USE_BROTLI is not set, skipping 'link_brotli' task"; fi
 
 link_libsodium:
 	@if [ ! -z "${USE_LIBSODIUM}" ]; then\
 		./link_libsodium.sh;\
 	fi
-
-unlink_brotli:
-	rm -rf vendor/github.com/google/brotli/*
-	if [ -n "${USE_BROTLI}" ] ; then mv tmp/brotli/* vendor/github.com/google/brotli/; fi
-	rm -rf tmp/brotli
 
 unlink_libsodium:
 	rm -rf tmp/libsodium
