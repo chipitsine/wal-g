@@ -152,6 +152,9 @@ func (seg *WalSegment) processMessage(message pgproto3.BackendMessage) (ProcessM
 		}
 	case *pgproto3.CopyDone:
 		return ProcessMessageCopyDone, nil
+	case *pgproto3.NoticeResponse:
+		tracelog.WarningLogger.Printf("Received notice from server: %s\n", msg.Message)
+		return ProcessMessageOK, nil
 	default:
 		return ProcessMessageUnknown, segmentError{errors.Errorf("Received unexpected message: %#v\n", msg)}
 	}

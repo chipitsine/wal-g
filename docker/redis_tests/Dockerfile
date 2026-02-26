@@ -14,9 +14,7 @@ COPY main/ main/
 COPY utility/ utility/
 
 ENV USE_BROTLI=1
-RUN sed -i 's|#cgo LDFLAGS: -lbrotli.*|&-static -lbrotlicommon-static -lm|' \
-        vendor/github.com/google/brotli/go/cbrotli/cgo.go && \
-    cd main/redis && \
+RUN cd main/redis && \
     go build -mod vendor -tags brotli -race -o wal-g -ldflags "-s -w -X main.buildDate=`date -u +%Y.%m.%d_%H:%M:%S`"
 
 FROM wal-g/redis:latest

@@ -6,9 +6,8 @@ package brotli
 import (
 	"io"
 
+	"github.com/andybalholm/brotli"
 	"github.com/wal-g/wal-g/internal/ioextensions"
-
-	"github.com/google/brotli/go/cbrotli"
 )
 
 const (
@@ -19,7 +18,7 @@ const (
 type Compressor struct{}
 
 func (compressor Compressor) NewWriter(writer io.Writer) ioextensions.WriteFlushCloser {
-	return cbrotli.NewWriter(writer, cbrotli.WriterOptions{Quality: 3})
+	return brotli.NewWriterLevel(writer, 3)
 }
 
 func (compressor Compressor) FileExtension() string {
