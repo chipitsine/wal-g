@@ -8,15 +8,16 @@ test_receive_wal()
   pg_ctl -D ${PGDATA} -w start
 
   wal-g --config=${TMP_CONFIG} wal-receive &
+  WAL_RECEIVE_PID=$!
 
   pgbench -i -s 5 postgres
   pg_dumpall -f /tmp/dump1
   pgbench -c 2 -T 10 -S
-  sleep 1
+  pg_ctl -D ${PGDATA} -w stop -m fast
+  wait $WAL_RECEIVE_PID || true
   VERIFY_OUTPUT=$(mktemp)
   # Verify and store in temp file
   wal-g --config=${TMP_CONFIG} wal-verify integrity > "${VERIFY_OUTPUT}"
-  pg_ctl -D ${PGDATA} -w stop -m immediate
 
   # parse verify results
   VERIFY_RESULT=$(awk 'BEGIN{FS=":"}$1~/integrity check status/{print $2}' $VERIFY_OUTPUT)
