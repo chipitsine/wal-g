@@ -25,6 +25,17 @@ jobs:
     name: Build images
     runs-on: ubuntu-latest
     steps:
+
+      - name: Cleanup space on runner
+        run: |
+          swapon --show=NAME --noheadings | while read swap_device; do
+            sudo swapoff $swap_device
+          done
+
+          if [ -e /swapfile ]; then
+            sudo rm /swapfile
+          fi
+
       #  use cache to pass docker images to the test jobs
       - name: Docker images caching
         id: cache-images
@@ -78,6 +89,17 @@ jobs:
       # do not cancel all tests if one failed
       fail-fast: false
     steps:
+
+      - name: Cleanup space on runner
+        run: |
+          swapon --show=NAME --noheadings | while read swap_device; do
+            sudo swapoff $swap_device
+          done
+
+          if [ -e /swapfile ]; then
+            sudo rm /swapfile
+          fi
+
       - name: Install deps
         run: sudo apt-get install liblzo2-dev
 
