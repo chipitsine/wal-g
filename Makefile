@@ -65,7 +65,7 @@ pg_build_image:
 	# There are dependencies between container images.
 	# Running in one command leads to using outdated images and fails on clean system.
 	# It can not be fixed with depends_on in compose file. https://github.com/docker/compose/issues/6332
-	docker compose build $(DOCKER_COMMON)
+	docker compose build --parallel $(DOCKER_COMMON)
 	docker compose build pg
 	docker compose build pg_build_docker_prefix
 
@@ -142,7 +142,7 @@ sqlserver_build: $(CMD_FILES) $(PKG_FILES)
 load_docker_common:
 	@if [ "x" = "${CACHE_FOLDER}x" ]; then\
 		echo "Rebuild";\
-		docker compose build $(DOCKER_COMMON);\
+		docker compose build --parallel $(DOCKER_COMMON);\
 	else\
 		docker load -i ${CACHE_FILE_UBUNTU_18_04};\
 		docker load -i ${CACHE_FILE_UBUNTU_20_04};\
