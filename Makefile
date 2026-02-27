@@ -147,6 +147,7 @@ load_docker_common:
 	else\
 		docker load -i ${CACHE_FILE_UBUNTU_18_04};\
 		docker load -i ${CACHE_FILE_UBUNTU_20_04};\
+		docker load -i ${CACHE_FILE_UBUNTU_24_04};\
 		docker load -i ${CACHE_FILE_GOLANG};\
 	fi
 
