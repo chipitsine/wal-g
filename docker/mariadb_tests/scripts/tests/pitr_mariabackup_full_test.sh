@@ -47,7 +47,6 @@ mysql -e "DROP DATABASE testdb"
 
 # Kill and restore
 mariadb_kill_and_clean_data
-wal-g backup-fetch LATEST
 
 # Get GTIDs from backup
 cat /var/lib/mysql/xtrabackup_binlog_info
@@ -56,6 +55,8 @@ echo "GTIDs from backup: $gtids"
 
 chown -R mysql:mysql $MYSQLDATA
 service mariadb start || (cat /var/log/mysql/error.log && false)
+
+wal-g backup-fetch LATEST
 
 # Reset GTIDs
 mysql -e "STOP ALL SLAVES; SET GLOBAL gtid_slave_pos='$gtids';" || true
