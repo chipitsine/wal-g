@@ -39,7 +39,7 @@ mysql -e "FLUSH LOGS"
 wal-g binlog-push
 
 # Verify data before disaster
-mysql -e "SELECT COUNT(*) FROM testdb.users" | grep -q 5
+mysql -e "SELECT COUNT(*) FROM testdb.users" | grep -q 4
 mysql -e "SELECT COUNT(*) FROM testdb.products" | grep -q 3
 
 # Simulate disaster
@@ -60,6 +60,8 @@ service mariadb start || (cat /var/log/mysql/error.log && false)
 # Reset GTIDs
 mysql -e "STOP ALL SLAVES; SET GLOBAL gtid_slave_pos='$gtids';" || true
 mysql -e "SET GLOBAL gtid_slave_pos='$gtids';"
+
+rm -rf ${WALG_MYSQL_BINLOG_DST}/*
 
 # Apply binlogs until PITR point
 wal-g binlog-replay --since LATEST --until "$DT_PITR"
