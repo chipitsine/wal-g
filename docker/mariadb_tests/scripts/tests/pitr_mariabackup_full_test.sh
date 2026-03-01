@@ -3,6 +3,10 @@ set -e -o pipefail -x
 
 . /usr/local/export_common.sh
 
+echo 'dddddddddddddddebug'
+echo "WALG_MYSQL_BINLOG_END_TS=$WALG_MYSQL_BINLOG_END_TS"
+echo "WALG_MYSQL_CURRENT_BINLOG=$WALG_MYSQL_CURRENT_BINLOG"
+
 export WALE_S3_PREFIX=s3://mariadb_pitr_mariabackup_full
 export WALG_MYSQL_BINLOG_REPLAY_COMMAND='mysqlbinlog --stop-datetime="$WALG_MYSQL_BINLOG_END_TS" "$WALG_MYSQL_CURRENT_BINLOG" | mysql'
 export WALG_MYSQL_BINLOG_DST=/tmp/binlogs
