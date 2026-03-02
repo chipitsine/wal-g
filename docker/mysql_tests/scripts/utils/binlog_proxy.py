@@ -51,6 +51,7 @@ class DisconnectBinlogProxy:
 
         if not self.connect_to_server():
             print("[Proxy] Initial connection to server failed")
+            client_socket.close()
             return
 
         self.connection_start_time = time.time()
@@ -62,21 +63,18 @@ class DisconnectBinlogProxy:
                     print(f"[Proxy] Planned disconnect #{self.disconnect_count + 1}/{self.planned_disconnects} after {self.bytes_transferred} bytes")
                     print(f"[Proxy] Total bytes transferred so far: {self.total_bytes_transferred}")
 
-                    self.server_socket.close()
-                    time.sleep(2)
-
                     self.disconnect_count += 1
 
                     if self.disconnect_count >= self.planned_disconnects:
                         self.disconnects_completed = True
-                        print(f"[Proxy] Completed all {self.planned_disconnects} planned disconnects. Now working in stable mode.")
+                        print(f"[Proxy] Completed all {self.planned_disconnects} planned disconnects. Next connection will be stable.")
 
-                    if not self.connect_to_server():
-                        print("[Proxy] Reconnection failed, closing client connection")
-                        break
-
-                    self.connection_start_time = time.time()
-                    self.bytes_transferred = 0
+                    # Close both connections to force MySQL to reconnect with its current
+                    # GTID set. Reconnecting only the server side would corrupt the
+                    # replication protocol by sending a new MySQL handshake to MySQL
+                    # while it expects binlog events.
+                    print(f"[Proxy] Closing both connections to force client reconnect")
+                    return
 
                 try:
                     ready_sockets, _, error_sockets = select.select(
