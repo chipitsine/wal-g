@@ -72,11 +72,12 @@ pg_build_image:
 pg_save_image: install_and_build_pg pg_build_image
 	mkdir -p ${CACHE_FOLDER}
 	sudo rm -rf ${CACHE_FOLDER}/*
-	docker save ${IMAGE} | gzip -c > ${CACHE_FILE_DOCKER_PREFIX}
-	docker save wal-g/ubuntu:18.04 | gzip -c > ${CACHE_FILE_UBUNTU_18_04}
-	docker save wal-g/ubuntu:20.04 | gzip -c > ${CACHE_FILE_UBUNTU_20_04}
-	docker save wal-g/ubuntu:22.04 | gzip -c > ${CACHE_FILE_UBUNTU_22_04}
-	docker save ${IMAGE_GOLANG} | gzip -c > ${CACHE_FILE_GOLANG}
+	docker save ${IMAGE} | gzip -c > ${CACHE_FILE_DOCKER_PREFIX} & \
+		docker save wal-g/ubuntu:18.04 | gzip -c > ${CACHE_FILE_UBUNTU_18_04} & \
+		docker save wal-g/ubuntu:20.04 | gzip -c > ${CACHE_FILE_UBUNTU_20_04} & \
+		docker save wal-g/ubuntu:22.04 | gzip -c > ${CACHE_FILE_UBUNTU_22_04} & \
+		docker save ${IMAGE_GOLANG} | gzip -c > ${CACHE_FILE_GOLANG} & \
+		wait
 	ls ${CACHE_FOLDER}
 
 pg_integration_test: clean_compose
