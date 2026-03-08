@@ -4,10 +4,11 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
     apt-get -y install \
-        build-essential cmake && \
+        build-essential cmake git && \
     rm -rf /var/lib/apt/lists/*
 
-COPY submodules/brotli /tmp/brotli
+RUN git clone https://github.com/google/brotli.git /tmp/brotli && \
+    git -C /tmp/brotli checkout 664952333f675eb189b9d8dfefb1d33538cc41f6
 
 RUN cd /tmp/brotli && \
     mkdir out && cd out && \
