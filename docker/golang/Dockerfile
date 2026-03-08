@@ -1,3 +1,19 @@
+FROM ubuntu:bionic AS brotli-builder
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && \
+    apt-get -y install \
+        build-essential cmake && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY submodules/brotli /tmp/brotli
+
+RUN cd /tmp/brotli && \
+    mkdir out && cd out && \
+    cmake -DCMAKE_INSTALL_PREFIX=/brotli-install .. && \
+    make -j$(nproc) && make install
+
 FROM ubuntu:bionic
 
 # custom golang image with CMake and Brotli support (compatible with ubuntu 18.04..22.04)
@@ -24,9 +40,4 @@ RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" && chmod -R 777 "$GOPATH"
 RUN wget https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0-linux-x86_64.tar.gz && \
     tar xf cmake-3.31.0-linux-x86_64.tar.gz -C /usr --strip-components=1 && rm cmake-3.31.0-linux-x86_64.tar.gz
 
-COPY submodules/ tmp/
-
-RUN cd tmp/brotli && \
-    mkdir out && cd out && \
-    cmake .. && \
-    make && make install
+COPY --from=brotli-builder /brotli-install/ /usr/local/
