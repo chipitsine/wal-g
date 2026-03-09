@@ -8,7 +8,7 @@ jobs:
     with:
       command-json-array: >
         [
-        "make IMAGE_TYPE=\"rdb\" REDIS_VERSION=\"6.2.4\" redis_features",
+        "make IMAGE_TYPE=\"rdb\" REDIS_VERSION=\"6.2.4\" FEATURE=\"rdb_backup\" redis_features",
         "make REDIS_VERSION=\"7.0.15\" redis_combined_features",
         "make REDIS_VERSION=\"7.2.4\" redis_combined_features",
         ]
