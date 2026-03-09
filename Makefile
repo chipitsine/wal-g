@@ -233,6 +233,15 @@ redis_features:
 	make go_deps
 	cd tests_func/ && REDIS_VERSION=$(REDIS_VERSION) IMAGE_TYPE=$(IMAGE_TYPE) go test -v -count=1 -timeout 20m  --tf.test=true --tf.debug=false --tf.clean=false --tf.stop=false --tf.database=redis
 
+# Run both AOF and RDB tests sequentially to save infrastructure setup time
+redis_combined_features:
+	set -e
+	make go_deps
+	cd tests_func
+	REDIS_VERSION=$(REDIS_VERSION) IMAGE_TYPE=aof FEATURE=aof_backup go test -v -count=1 -timeout 20m --tf.test=true --tf.debug=false --tf.clean=false --tf.stop=false --tf.database=redis
+	REDIS_VERSION=$(REDIS_VERSION) go test -v -count=1 -timeout 5m --tf.test=false --tf.debug=false --tf.clean=true --tf.stop=true --tf.database=redis
+	REDIS_VERSION=$(REDIS_VERSION) IMAGE_TYPE=rdb FEATURE=rdb_backup go test -v -count=1 -timeout 20m --tf.test=true --tf.debug=false --tf.clean=true --tf.stop=true --tf.database=redis
+
 clean_redis_features:
 	set -e
 	cd tests_func/ && REDIS_VERSION=$(REDIS_VERSION) go test -v -count=1  -timeout 5m --tf.test=false --tf.debug=false --tf.clean=true --tf.stop=true --tf.database=redis
