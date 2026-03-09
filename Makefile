@@ -237,8 +237,9 @@ redis_features:
 redis_combined_features:
 	set -e
 	make go_deps
-	cd tests_func && REDIS_VERSION=$(REDIS_VERSION) IMAGE_TYPE=aof FEATURE=aof_backup go test -v -count=1 -timeout 20m --tf.test=true --tf.debug=false --tf.clean=false --tf.stop=false --tf.database=redis
-	cd tests_func && REDIS_VERSION=$(REDIS_VERSION) go test -v -count=1 -timeout 5m --tf.test=false --tf.debug=false --tf.clean=true --tf.stop=true --tf.database=redis
+	cd tests_func && REDIS_VERSION=$(REDIS_VERSION) IMAGE_TYPE=aof FEATURE=aof_backup go test -v -count=1 -timeout 20m --tf.test=true --tf.debug=false --tf.clean=false --tf.stop=true --tf.database=redis
+	#cd tests_func && REDIS_VERSION=$(REDIS_VERSION) go test -v -count=1 -timeout 5m --tf.test=false --tf.debug=false --tf.clean=true --tf.stop=true --tf.database=redis
+	echo '-=-=-=-=-=-='
 	cd tests_func && REDIS_VERSION=$(REDIS_VERSION) IMAGE_TYPE=rdb FEATURE=rdb_backup go test -v -count=1 -timeout 20m --tf.test=true --tf.debug=false --tf.clean=true --tf.stop=true --tf.database=redis
 
 clean_redis_features:
