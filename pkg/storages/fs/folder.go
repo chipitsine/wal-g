@@ -6,7 +6,9 @@ import (
 	"io"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
+	"syscall"
 
 	"github.com/pkg/errors"
 	"github.com/wal-g/tracelog"
@@ -54,15 +56,55 @@ func (folder *Folder) ListFolder() (objects []storage.Object, subFolders []stora
 
 func (folder *Folder) DeleteObjects(objectsWithRelativePaths []storage.Object) error {
 	for _, object := range objectsWithRelativePaths {
-		err := os.RemoveAll(folder.GetFilePath(object.GetName()))
+		filePath := folder.GetFilePath(object.GetName())
+		err := os.RemoveAll(filePath)
 		if os.IsNotExist(err) {
 			continue
 		}
 		if err != nil {
 			return fmt.Errorf("unable to delete file %q: %w", object.GetName(), err)
 		}
+		if err = folder.cleanupEmptyFolders(filepath.Dir(filePath)); err != nil {
+			return err
+		}
 	}
 	return nil
+}
+
+// cleanupEmptyFolders removes empty parent directories up to the root folder path.
+func (folder *Folder) cleanupEmptyFolders(dirPath string) error {
+	rootPath := filepath.Clean(folder.rootPath)
+	for {
+		dirPath = filepath.Clean(dirPath)
+		rel, err := filepath.Rel(rootPath, dirPath)
+		if err != nil || rel == "." || strings.HasPrefix(rel, "..") {
+			break
+		}
+		entries, err := os.ReadDir(dirPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				break
+			}
+			return fmt.Errorf("unable to read directory %q: %w", dirPath, err)
+		}
+		if len(entries) > 0 {
+			break
+		}
+		if err = os.Remove(dirPath); err != nil {
+			// Directory became non-empty after ReadDir (race) or doesn't exist — stop quietly.
+			if os.IsNotExist(err) || isNotEmpty(err) {
+				break
+			}
+			return fmt.Errorf("unable to remove empty directory %q: %w", dirPath, err)
+		}
+		dirPath = filepath.Dir(dirPath)
+	}
+	return nil
+}
+
+// isNotEmpty reports whether the error from os.Remove indicates the directory is not empty.
+func isNotEmpty(err error) bool {
+	return errors.Is(err, syscall.ENOTEMPTY)
 }
 
 func (folder *Folder) Exists(objectRelativePath string) (bool, error) {
