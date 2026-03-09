@@ -54,13 +54,46 @@ func (folder *Folder) ListFolder() (objects []storage.Object, subFolders []stora
 
 func (folder *Folder) DeleteObjects(objectsWithRelativePaths []storage.Object) error {
 	for _, object := range objectsWithRelativePaths {
-		err := os.RemoveAll(folder.GetFilePath(object.GetName()))
+		filePath := folder.GetFilePath(object.GetName())
+		err := os.RemoveAll(filePath)
 		if os.IsNotExist(err) {
 			continue
 		}
 		if err != nil {
 			return fmt.Errorf("unable to delete file %q: %w", object.GetName(), err)
 		}
+		if err = folder.cleanupEmptyFolders(path.Dir(filePath)); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// cleanupEmptyFolders removes empty parent directories up to the root folder path.
+func (folder *Folder) cleanupEmptyFolders(dirPath string) error {
+	rootPath := path.Clean(folder.rootPath)
+	for {
+		dirPath = path.Clean(dirPath)
+		if dirPath == rootPath || !strings.HasPrefix(dirPath, rootPath) {
+			break
+		}
+		entries, err := os.ReadDir(dirPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				break
+			}
+			return fmt.Errorf("unable to read directory %q: %w", dirPath, err)
+		}
+		if len(entries) > 0 {
+			break
+		}
+		if err = os.Remove(dirPath); err != nil {
+			if os.IsNotExist(err) {
+				break
+			}
+			return fmt.Errorf("unable to remove empty directory %q: %w", dirPath, err)
+		}
+		dirPath = path.Dir(dirPath)
 	}
 	return nil
 }
