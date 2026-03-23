@@ -22,7 +22,6 @@ require (
 	github.com/gofrs/flock v0.8.0
 	github.com/golang/mock v1.4.4
 	github.com/google/uuid v1.6.0
-	github.com/greenplum-db/gp-common-go-libs v1.0.22
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/jackc/pglogrepl v0.0.0-20250325003938-6dfcde87cfc7
 	github.com/jedib0t/go-pretty v4.3.0+incompatible
@@ -111,13 +110,14 @@ require (
 	github.com/asaskevich/govalidator v0.0.0-20190424111038-f61b66f89f4a // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
+	github.com/cloudberrydb/gp-common-go-libs v1.0.11
 	github.com/cloudflare/circl v1.6.3 // indirect
 	github.com/cucumber/gherkin-go/v19 v19.0.3 // indirect
 	github.com/cucumber/messages-go/v16 v16.0.1 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/docker/go-connections v0.4.0 // indirect
 	github.com/docker/go-units v0.4.0 // indirect
-	github.com/fsnotify/fsnotify v1.4.7 // indirect
+	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/glycerine/go-unsnap-stream v0.0.0-20190901134440-81cf024a9e0a // indirect
 	github.com/go-openapi/errors v0.19.3 // indirect

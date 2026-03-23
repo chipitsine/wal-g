@@ -3,7 +3,7 @@ package greenplum
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/greenplum-db/gp-common-go-libs/cluster"
+	"github.com/cloudberrydb/gp-common-go-libs/cluster"
 	"os"
 	"sort"
 	"strings"
