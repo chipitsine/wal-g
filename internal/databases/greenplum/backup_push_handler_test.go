@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/greenplum-db/gp-common-go-libs/cluster"
+	"github.com/cloudberrydb/gp-common-go-libs/cluster"
 	"github.com/wal-g/wal-g/internal/config"
 )
 
