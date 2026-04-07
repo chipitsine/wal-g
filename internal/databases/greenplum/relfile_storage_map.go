@@ -76,7 +76,7 @@ func NewAoRelFileStorageMap(queryRunner *GpQueryRunner) (AoRelFileStorageMap, er
 			return nil
 		}
 
-		dbConn, err := postgres.Connect(databaseOption)
+		dbConn, err := Connect(databaseOption)
 		if err != nil {
 			tracelog.WarningLogger.Printf("Failed to connect to database: %s\n'%v'\n", db.Name, err)
 			continue
