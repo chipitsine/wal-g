@@ -192,6 +192,7 @@ while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
     SLAVE_SQL_RUNNING=$(mysql -e "SHOW SLAVE STATUS\G" | grep "Slave_SQL_Running:" | awk '{print $2}')
 
     LAST_IO_ERROR=$(mysql -e "SHOW SLAVE STATUS\G" | grep "Last_IO_Error:" | cut -d: -f2-)
+    LAST_SQL_ERROR=$(mysql -e "SHOW SLAVE STATUS\G" | grep "Last_SQL_Error:" | cut -d: -f2-)
 
     if [ "$ROW_COUNT" -eq "$LAST_ROW_COUNT" ]; then
         STUCK_COUNTER=$((STUCK_COUNTER + 1))
@@ -202,6 +203,12 @@ while [ $WAIT_COUNT -lt $MAX_WAIT ]; do
 
     if [ "$SLAVE_IO_RUNNING" = "No" ] && [ -n "$LAST_IO_ERROR" ]; then
         log "Slave IO failed, attempting quick restart..."
+        mysql -e "STOP SLAVE; START SLAVE;"
+        sleep 2
+    fi
+
+    if [ "$SLAVE_SQL_RUNNING" = "No" ] && [ -n "$LAST_SQL_ERROR" ]; then
+        log "Slave SQL failed ($LAST_SQL_ERROR), attempting quick restart..."
         mysql -e "STOP SLAVE; START SLAVE;"
         sleep 2
     fi

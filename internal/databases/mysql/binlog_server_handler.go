@@ -188,16 +188,44 @@ func (h *Handler) downloadBinlog(logFolder storage.Folder, logFile storage.Objec
 	return binlogPath, deleteFile, nil
 }
 
-func (h *Handler) makeEventHandler(s *replication.BinlogStreamer) func(*replication.BinlogEvent) error {
+func (h *Handler) makeEventHandler(s *replication.BinlogStreamer, executedGTIDs *mysql.MysqlGTIDSet) func(*replication.BinlogEvent) error {
+	var skipCurrentTransaction bool
 	return func(e *replication.BinlogEvent) error {
 		if h.ctx.Err() != nil {
 			return h.ctx.Err()
 		}
+
+		// Non-transactional control events must always be forwarded so the
+		// replica can track file boundaries and parse subsequent events.
+		switch e.Header.EventType {
+		case replication.FORMAT_DESCRIPTION_EVENT, replication.ROTATE_EVENT:
+			skipCurrentTransaction = false
+			return s.AddEventToStreamer(e)
+		}
+
 		if int64(e.Header.Timestamp) > untilTS.Unix() {
 			return nil
 		}
+
 		if e.Header.EventType == replication.GTID_EVENT {
+			// Decide whether to skip this entire transaction.
+			skipCurrentTransaction = false
+			if executedGTIDs != nil {
+				gtidEvent := &replication.GTIDEvent{}
+				if errDecode := gtidEvent.Decode(e.RawData[replication.EventHeaderSize:]); errDecode == nil {
+					gtidNext, err := gtidEvent.GTIDNext()
+					if err == nil && executedGTIDs.Contain(gtidNext) {
+						skipCurrentTransaction = true
+						return nil
+					}
+				}
+			}
 			h.updateLastSentGTID(e)
+			return s.AddEventToStreamer(e)
+		}
+
+		if skipCurrentTransaction {
+			return nil
 		}
 		return s.AddEventToStreamer(e)
 	}
@@ -221,6 +249,7 @@ func (h *Handler) streamSingleBinlog(
 	logFile storage.Object,
 	startPos *mysql.Position,
 	s *replication.BinlogStreamer,
+	executedGTIDs *mysql.MysqlGTIDSet,
 ) error {
 	binlogName := utility.TrimFileExtension(logFile.GetName())
 
@@ -234,10 +263,10 @@ func (h *Handler) streamSingleBinlog(
 	processPos := int64(startPos.Pos)
 	startPos.Pos = 4
 
-	return p.ParseFile(binlogPath, processPos, h.makeEventHandler(s))
+	return p.ParseFile(binlogPath, processPos, h.makeEventHandler(s, executedGTIDs))
 }
 
-func (h *Handler) streamBinlogFiles(startPos mysql.Position, s *replication.BinlogStreamer) {
+func (h *Handler) streamBinlogFiles(startPos mysql.Position, s *replication.BinlogStreamer, executedGTIDs *mysql.MysqlGTIDSet) {
 	if err := addRotateEvent(s, startPos); err != nil {
 		handleEventError(err, s)
 	}
@@ -264,7 +293,7 @@ func (h *Handler) streamBinlogFiles(startPos mysql.Position, s *replication.Binl
 			return
 		}
 
-		err := h.streamSingleBinlog(p, logFolder, logFile, &startPos, s)
+		err := h.streamSingleBinlog(p, logFolder, logFile, &startPos, s, executedGTIDs)
 		if err != nil && h.ctx.Err() == nil {
 			handleEventError(err, s)
 			return
@@ -281,14 +310,14 @@ func (h *Handler) HandleRegisterSlave(data []byte) error {
 func (h *Handler) HandleBinlogDump(pos mysql.Position) (*replication.BinlogStreamer, error) {
 	tracelog.InfoLogger.Printf("HandleBinlogDump: requested position %s:%d", pos.Name, pos.Pos)
 	s := replication.NewBinlogStreamer()
-	go h.streamBinlogFiles(pos, s)
+	go h.streamBinlogFiles(pos, s, nil)
 	return s, nil
 }
 
 func (h *Handler) HandleBinlogDumpGTID(gtidSet *mysql.MysqlGTIDSet) (*replication.BinlogStreamer, error) {
 	tracelog.InfoLogger.Printf("HandleBinlogDumpGTID: GTID=%s", gtidSet.String())
 	s := replication.NewBinlogStreamer()
-	go h.streamBinlogFiles(mysql.Position{Name: "host-binlog-file", Pos: 4}, s)
+	go h.streamBinlogFiles(mysql.Position{Name: "host-binlog-file", Pos: 4}, s, gtidSet)
 	return s, nil
 }
 
