@@ -197,8 +197,8 @@ func (h *Handler) makeEventHandler(s *replication.BinlogStreamer, executedGTIDs 
 
 		// Non-transactional control events must always be forwarded so the
 		// replica can track file boundaries and parse subsequent events.
-		switch e.Header.EventType {
-		case replication.FORMAT_DESCRIPTION_EVENT, replication.ROTATE_EVENT:
+		if e.Header.EventType == replication.FORMAT_DESCRIPTION_EVENT ||
+			e.Header.EventType == replication.ROTATE_EVENT {
 			skipCurrentTransaction = false
 			return s.AddEventToStreamer(e)
 		}
@@ -208,24 +208,30 @@ func (h *Handler) makeEventHandler(s *replication.BinlogStreamer, executedGTIDs 
 		}
 
 		if e.Header.EventType == replication.GTID_EVENT {
-			// Decide whether to skip this entire transaction.
+			// Decide whether to skip this entire transaction based on whether
+			// the replica has already executed it.
 			skipCurrentTransaction = false
 			if executedGTIDs != nil {
 				gtidEvent := &replication.GTIDEvent{}
-				if errDecode := gtidEvent.Decode(e.RawData[replication.EventHeaderSize:]); errDecode == nil {
+				if errDecode := gtidEvent.Decode(e.RawData[replication.EventHeaderSize:]); errDecode != nil {
+					tracelog.DebugLogger.Printf("Failed to decode GTID event, will not skip: %v", errDecode)
+				} else {
 					gtidNext, err := gtidEvent.GTIDNext()
-					if err == nil && executedGTIDs.Contain(gtidNext) {
+					if err != nil {
+						tracelog.DebugLogger.Printf("Failed to get GTIDNext, will not skip: %v", err)
+					} else if executedGTIDs.Contain(gtidNext) {
 						skipCurrentTransaction = true
-						return nil
 					}
 				}
 			}
-			h.updateLastSentGTID(e)
-			return s.AddEventToStreamer(e)
 		}
 
 		if skipCurrentTransaction {
 			return nil
+		}
+
+		if e.Header.EventType == replication.GTID_EVENT {
+			h.updateLastSentGTID(e)
 		}
 		return s.AddEventToStreamer(e)
 	}
