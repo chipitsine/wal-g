@@ -125,7 +125,7 @@ func (queryRunner *PgQueryRunner) BuildStopBackup() (string, error) {
 	case queryRunner.Version >= 150000:
 		return "SELECT labelfile, spcmapfile, lsn FROM pg_backup_stop(false)", nil
 	case queryRunner.Version >= 90600:
-		return "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false)", nil
+		return "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false, false)", nil
 	case queryRunner.Version >= 90000:
 		return "SELECT (pg_xlogfile_name_offset(lsn)).file_name," +
 			" lpad((pg_xlogfile_name_offset(lsn)).file_offset::text, 8, '0') AS file_offset, lsn::text " +

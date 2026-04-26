@@ -52,11 +52,11 @@ func TestBuildStopBackup(t *testing.T) {
 
 	queryBuilder.Version = 90600
 	queryString, err = queryBuilder.BuildStopBackup()
-	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false)", queryString)
+	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false, false)", queryString)
 
 	queryBuilder.Version = 100000
 	queryString, err = queryBuilder.BuildStopBackup()
-	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false)", queryString)
+	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false, false)", queryString)
 
 	queryBuilder.Version = 150000
 	queryString, err = queryBuilder.BuildStopBackup()
