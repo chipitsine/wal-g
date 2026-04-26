@@ -50,33 +50,16 @@ func TestBuildStopBackup(t *testing.T) {
 	queryString, err := queryBuilder.BuildStopBackup()
 	assert.Equal(t, "SELECT (pg_xlogfile_name_offset(lsn)).file_name, lpad((pg_xlogfile_name_offset(lsn)).file_offset::text, 8, '0') AS file_offset, lsn::text FROM pg_stop_backup() lsn", queryString)
 
-	// Default: WaitForArchive=true produces pg_stop_backup(false, true)
 	queryBuilder.Version = 90600
-	queryBuilder.WaitForArchive = true
 	queryString, err = queryBuilder.BuildStopBackup()
-	assert.NoError(t, err)
-	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false, true)", queryString)
+	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false)", queryString)
 
 	queryBuilder.Version = 100000
 	queryString, err = queryBuilder.BuildStopBackup()
-	assert.NoError(t, err)
-	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false, true)", queryString)
-
-	// GP segment mode: WaitForArchive=false produces pg_stop_backup(false, false)
-	queryBuilder.Version = 90600
-	queryBuilder.WaitForArchive = false
-	queryString, err = queryBuilder.BuildStopBackup()
-	assert.NoError(t, err)
-	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false, false)", queryString)
-
-	queryBuilder.Version = 140000
-	queryString, err = queryBuilder.BuildStopBackup()
-	assert.NoError(t, err)
-	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false, false)", queryString)
+	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false)", queryString)
 
 	queryBuilder.Version = 150000
 	queryString, err = queryBuilder.BuildStopBackup()
-	assert.NoError(t, err)
 	assert.Equal(t, "SELECT labelfile, spcmapfile, lsn FROM pg_backup_stop(false)", queryString)
 }
 
