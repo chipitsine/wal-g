@@ -68,6 +68,7 @@ type BackupArguments struct {
 	withoutFilesMetadata     bool
 	composerInitFunc         func(handler *BackupHandler) error
 	preventConcurrentBackups bool
+	noWaitForArchive         bool
 }
 
 // CurBackupInfo holds all information that is harvest during the backup process
@@ -148,6 +149,15 @@ func (ba *BackupArguments) EnablePreventConcurrentBackups() {
 	tracelog.InfoLogger.Println("Concurrent backups are disabled")
 }
 
+// EnableNoWaitForArchive makes pg_stop_backup return immediately without waiting
+// for the WAL file to be archived. Used for Greenplum segment backups where
+// the archiver may be slow or intermittently failing, which would otherwise
+// cause pg_stop_backup to hang indefinitely.
+func (ba *BackupArguments) EnableNoWaitForArchive() {
+	ba.noWaitForArchive = true
+	tracelog.InfoLogger.Println("pg_stop_backup will not wait for WAL archiving to complete")
+}
+
 func (bh *BackupHandler) createAndPushBackup(ctx context.Context) {
 	var err error
 	folder := bh.Arguments.Uploader.Folder()
@@ -207,6 +217,10 @@ func (bh *BackupHandler) startBackup() error {
 	bh.Workers.QueryRunner, err = NewPgQueryRunner(conn)
 	if err != nil {
 		return fmt.Errorf("failed to build query runner: %v", err)
+	}
+
+	if bh.Arguments.noWaitForArchive {
+		bh.Workers.QueryRunner.WaitForArchive = false
 	}
 
 	// If preventConcurrentBackups is set to true, we need to ensure that no backups are in progress

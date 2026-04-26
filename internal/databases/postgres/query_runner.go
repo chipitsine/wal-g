@@ -68,6 +68,10 @@ type PgQueryRunner struct {
 	SystemIdentifier  *uint64
 	stopBackupTimeout time.Duration
 	Mu                sync.Mutex
+	// WaitForArchive controls whether pg_stop_backup waits for WAL archiving to complete.
+	// Defaults to true. Set to false for Greenplum segment backups to avoid hangs when
+	// WAL archiving is slow or intermittently failing.
+	WaitForArchive bool
 }
 
 // BuildGetVersion formats a query to retrieve PostgreSQL numeric version
@@ -125,7 +129,11 @@ func (queryRunner *PgQueryRunner) BuildStopBackup() (string, error) {
 	case queryRunner.Version >= 150000:
 		return "SELECT labelfile, spcmapfile, lsn FROM pg_backup_stop(false)", nil
 	case queryRunner.Version >= 90600:
-		return "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false, false)", nil
+		waitForArchive := "true"
+		if !queryRunner.WaitForArchive {
+			waitForArchive = "false"
+		}
+		return "SELECT labelfile, spcmapfile, lsn FROM pg_stop_backup(false, " + waitForArchive + ")", nil
 	case queryRunner.Version >= 90000:
 		return "SELECT (pg_xlogfile_name_offset(lsn)).file_name," +
 			" lpad((pg_xlogfile_name_offset(lsn)).file_offset::text, 8, '0') AS file_offset, lsn::text " +
@@ -144,7 +152,7 @@ func NewPgQueryRunner(conn *pgx.Conn) (*PgQueryRunner, error) {
 		return nil, err
 	}
 
-	r := &PgQueryRunner{Connection: conn, stopBackupTimeout: timeout}
+	r := &PgQueryRunner{Connection: conn, stopBackupTimeout: timeout, WaitForArchive: true}
 
 	err = r.getVersion()
 	if err != nil {

@@ -34,5 +34,10 @@ func NewSegBackupHandler(arguments postgres.BackupArguments) (*postgres.BackupHa
 		bh.Arguments.EnablePreventConcurrentBackups()
 	}
 
+	// Greenplum segment backups must not wait for WAL archiving in pg_stop_backup.
+	// The archiver may be slow or intermittently failing in CI environments, causing
+	// pg_stop_backup(wait_for_archive=true) to hang indefinitely.
+	bh.Arguments.EnableNoWaitForArchive()
+
 	return bh, err
 }
