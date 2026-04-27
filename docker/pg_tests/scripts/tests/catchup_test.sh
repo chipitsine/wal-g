@@ -23,7 +23,7 @@ pushd ${PGDATA_ALPHA}
 psql -c "CREATE ROLE repl WITH REPLICATION PASSWORD 'password' LOGIN;"
 echo "host  replication  repl              127.0.0.1/32  md5" >> pg_hba.conf
 echo "wal_level = replica" >> postgresql.conf
-echo "wal_keep_segments = 100" >> postgresql.conf
+echo "wal_keep_size = '1600MB'" >> postgresql.conf
 echo "max_wal_senders = 4" >> postgresql.conf
 pg_ctl -D ${PGDATA_ALPHA} -w restart
 PGDATA=${PGDATA_ALPHA} /tmp/scripts/wait_while_pg_not_ready.sh
@@ -37,12 +37,10 @@ cp -r ${PGDATA_BETA} ${PGDATA_BETA_1}
 pushd ${PGDATA_BETA}
 echo "port = ${BETA_PORT}" >> postgresql.conf
 echo "hot_standby = on" >> postgresql.conf
-cat > recovery.conf << EOF
-standby_mode = 'on'
-primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
-restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
-trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
-EOF
+touch standby.signal
+echo "primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'" >> postgresql.conf
+echo "restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'" >> postgresql.conf
+echo "promote_trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'" >> postgresql.conf
 pg_ctl -D ${PGDATA_BETA} -w start
 popd
 
@@ -69,12 +67,10 @@ wal-g --config=${TMP_CONFIG} catchup-fetch ${PGDATA_BETA} $BACKUP_NAME
 pushd ${PGDATA_BETA}
 echo "port = ${BETA_PORT}" >> postgresql.conf
 echo "hot_standby = on" >> postgresql.conf
-cat > recovery.conf << EOF
-standby_mode = 'on'
-primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
-restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
-trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
-EOF
+touch standby.signal
+echo "primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'" >> postgresql.conf
+echo "restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'" >> postgresql.conf
+echo "promote_trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'" >> postgresql.conf
 popd
 
 pg_ctl -D ${PGDATA_BETA} -w start
@@ -101,12 +97,10 @@ wal-g --config=${TMP_CONFIG} catchup-send ${PGDATA_ALPHA} localhost:1337
 pushd ${PGDATA_BETA}
 echo "port = ${BETA_PORT}" >> postgresql.conf
 echo "hot_standby = on" >> postgresql.conf
-cat > recovery.conf << EOF
-standby_mode = 'on'
-primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
-restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
-trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
-EOF
+touch standby.signal
+echo "primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'" >> postgresql.conf
+echo "restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'" >> postgresql.conf
+echo "promote_trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'" >> postgresql.conf
 popd
 
 pg_ctl -D ${PGDATA_BETA} -w start

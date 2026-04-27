@@ -47,12 +47,15 @@ first_backup_name=`wal-g --config=${TMP_CONFIG} backup-list | sed '2q;d' | cut -
 
 wal-g backup-fetch --config=${TMP_CONFIG} ${PGDATA} $first_backup_name
 
-echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& \
-/usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" > ${PGDATA}/recovery.conf
+touch ${PGDATA}/recovery.signal
+echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" >> ${PGDATA}/postgresql.conf
 pg_ctl -D ${PGDATA} -w start
 /tmp/scripts/wait_while_pg_not_ready.sh
 pg_dumpall -f /tmp/dump2
-diff /tmp/dump1 /tmp/dump2
+
+grep -Ev '^\\(un)?restrict' /tmp/dump1 > /tmp/dump1.filtered
+grep -Ev '^\\(un)?restrict' /tmp/dump2 > /tmp/dump2.filtered
+diff /tmp/dump1.filtered /tmp/dump2.filtered
 
 wal-g --config=${TMP_CONFIG} backup-list --detail
 

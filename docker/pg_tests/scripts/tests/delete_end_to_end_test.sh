@@ -45,7 +45,8 @@ for i in ${FIRST} LATEST
 do
 /tmp/scripts/drop_pg.sh
     wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} ${i}
-    echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" > ${PGDATA}/recovery.conf
+    touch ${PGDATA}/recovery.signal
+    echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" >> ${PGDATA}/postgresql.conf
     pg_ctl -D ${PGDATA} -w start
     /tmp/scripts/wait_while_pg_not_ready.sh
     wal-g --config=${TMP_CONFIG} backup-list
@@ -53,8 +54,12 @@ do
     pg_dumpall -f /tmp/dump${i}
 done
 
-diff /tmp/dump4 /tmp/dump${FIRST}
-diff /tmp/dump9 /tmp/dumpLATEST
+grep -Ev '^\\(un)?restrict' /tmp/dump4 > /tmp/dump4.filtered
+grep -Ev '^\\(un)?restrict' /tmp/dump${FIRST} > /tmp/dumpFIRST.filtered
+grep -Ev '^\\(un)?restrict' /tmp/dump9 > /tmp/dump9.filtered
+grep -Ev '^\\(un)?restrict' /tmp/dumpLATEST > /tmp/dumpLATEST.filtered
+diff /tmp/dump4.filtered /tmp/dumpFIRST.filtered
+diff /tmp/dump9.filtered /tmp/dumpLATEST.filtered
 /tmp/scripts/drop_pg.sh
 rm ${TMP_CONFIG}
 echo $target_backup_name

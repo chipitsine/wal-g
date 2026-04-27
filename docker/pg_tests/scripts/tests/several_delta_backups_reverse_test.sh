@@ -37,7 +37,8 @@ sleep 1
 
 wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} LATEST --reverse-unpack
 
-echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" > ${PGDATA}/recovery.conf
+touch ${PGDATA}/recovery.signal
+echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" >> ${PGDATA}/postgresql.conf
 
 pg_ctl -D ${PGDATA} -w -t 100500 start
 sleep 10
@@ -47,6 +48,8 @@ pg_dumpall -f /tmp/dump2
 
 psql -f /tmp/scripts/amcheck.sql -v "ON_ERROR_STOP=1" postgres
 
-diff /tmp/dump1 /tmp/dump2
+grep -Ev '^\\(un)?restrict' /tmp/dump1 > /tmp/dump1.filtered
+grep -Ev '^\\(un)?restrict' /tmp/dump2 > /tmp/dump2.filtered
+diff /tmp/dump1.filtered /tmp/dump2.filtered
 /tmp/scripts/drop_pg.sh
 rm ${TMP_CONFIG}

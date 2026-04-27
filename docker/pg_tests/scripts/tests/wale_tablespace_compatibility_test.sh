@@ -85,23 +85,10 @@ PGHOST=/var/run/postgresql \
 WALE_FILE_PREFIX=file://localhost/tmp \
 wal-g backup-fetch --restore-spec /tmp/restore_spec.json ${PGDATA} LATEST
 
-echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& \
-AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE \
-AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY \
-AWS_ENDPOINT=http://s3:9000 \
-AWS_S3_FORCE_PATH_STYLE=true \
-WALG_COMPRESSION_METHOD=brotli \
-WALG_DELTA_MAX_STEPS=6 \
-WALG_UPLOAD_CONCURRENCY=10 \
-WALG_DISK_RATE_LIMIT=41943040 \
-WALG_NETWORK_RATE_LIMIT=10485760 \
-PGSSLMODE=allow \
-PGDATABASE=postgres \
-PGHOST=/var/run/postgresql \
-WALE_FILE_PREFIX=file://localhost/tmp \
-/usr/bin/wal-g wal-fetch \"%f\" \"%p\"'" > ${PGDATA}/recovery.conf
-
 cp -t ${PGDATA} /tmp/conf_files/postgresql.conf /tmp/conf_files/pg_hba.conf /tmp/conf_files/pg_ident.conf
+
+touch ${PGDATA}/recovery.signal
+echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY AWS_ENDPOINT=http://s3:9000 AWS_S3_FORCE_PATH_STYLE=true WALG_COMPRESSION_METHOD=brotli WALG_DELTA_MAX_STEPS=6 WALG_UPLOAD_CONCURRENCY=10 WALG_DISK_RATE_LIMIT=41943040 WALG_NETWORK_RATE_LIMIT=10485760 PGSSLMODE=allow PGDATABASE=postgres PGHOST=/var/run/postgresql WALE_FILE_PREFIX=file://localhost/tmp /usr/bin/wal-g wal-fetch \"%f\" \"%p\"'" >> ${PGDATA}/postgresql.conf
 
 pg_ctl -D ${PGDATA} -w start
 /tmp/scripts/wait_while_pg_not_ready.sh

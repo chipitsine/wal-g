@@ -37,7 +37,8 @@ wal-g --config=${TMP_CONFIG} st transfer pg-wals --source=failover --target=defa
 
 wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} LATEST
 
-echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" > ${PGDATA}/recovery.conf
+touch ${PGDATA}/recovery.signal
+echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" >> ${PGDATA}/postgresql.conf
 
 wal-g --config=${TMP_CONFIG} st ls -r --target failover
 wal-g --config=${TMP_CONFIG} st ls -r --target default
@@ -46,7 +47,9 @@ pg_ctl -D ${PGDATA} -w start
 /tmp/scripts/wait_while_pg_not_ready.sh
 pg_dumpall -f /tmp/dump2
 
-diff /tmp/dump1 /tmp/dump2
+grep -Ev '^\\(un)?restrict' /tmp/dump1 > /tmp/dump1.filtered
+grep -Ev '^\\(un)?restrict' /tmp/dump2 > /tmp/dump2.filtered
+diff /tmp/dump1.filtered /tmp/dump2.filtered
 
 psql -f /tmp/scripts/amcheck.sql -v "ON_ERROR_STOP=1" postgres
 

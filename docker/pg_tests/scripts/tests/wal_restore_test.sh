@@ -86,12 +86,10 @@ cd ${PGDATA_BETA}
   echo "archive_command = '/usr/bin/timeout 600 /usr/bin/wal-g wal-push %p --config=${TMP_CONFIG}'"
   echo "archive_timeout = 600"
 } >> postgresql.conf
-cat > recovery.conf << EOF
-standby_mode = 'on'
-primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
-restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
-trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
-EOF
+touch standby.signal
+echo "primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'" >> postgresql.conf
+echo "restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'" >> postgresql.conf
+echo "promote_trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'" >> postgresql.conf
 
 pg_ctl -D ${PGDATA_BETA} -w start
 
