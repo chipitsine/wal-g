@@ -1,12 +1,20 @@
 FROM wal-g/ubuntu:18.04
 
-ENV PGDATA=/var/lib/postgresql/10/main
-ENV PATH=/usr/lib/postgresql/10/bin:$PATH
+ENV PGDATA=/var/lib/postgresql/data12
+ENV PATH=/usr/lib/postgresql/12/bin:$PATH
 
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends --no-install-suggests \
-    postgresql-10 \
-    postgresql-contrib \
+    curl \
+    gnupg \
+    ca-certificates && \
+    curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg && \
+    echo "deb http://apt.postgresql.org/pub/repos/apt bionic-pgdg main 12" > /etc/apt/sources.list.d/pgdg.list && \
+    apt-get update && \
+    apt-get install --yes --no-install-recommends --no-install-suggests \
+    postgresql-12 \
+    postgresql-contrib-12 \
+    procps \
     gnupg \
     gpg-agent \
     time \

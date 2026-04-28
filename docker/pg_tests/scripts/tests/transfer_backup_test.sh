@@ -37,7 +37,13 @@ wal-g --config=${TMP_CONFIG} st transfer pg-wals --source=failover --target=defa
 
 wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} LATEST
 
-echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" > ${PGDATA}/recovery.conf
+PG_VERSION=$(cat "${PGDATA}/PG_VERSION")
+if awk "BEGIN {exit !(${PG_VERSION} >= 12)}"; then
+  touch "${PGDATA}/recovery.signal"
+  echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" >> "${PGDATA}/postgresql.conf"
+else
+  echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" > "${PGDATA}/recovery.conf"
+fi
 
 wal-g --config=${TMP_CONFIG} st ls -r --target failover
 wal-g --config=${TMP_CONFIG} st ls -r --target default
