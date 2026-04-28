@@ -60,9 +60,9 @@ cp -r ${PGDATA_BETA} ${PGDATA_BETA_1}
 pushd ${PGDATA_BETA}
 echo "port = ${BETA_PORT}" >> postgresql.conf
 echo "hot_standby = on" >> postgresql.conf
-popd
 setup_standby_recovery ${PGDATA_BETA} ${BETA_PORT}
 pg_ctl -D ${PGDATA_BETA} -w start
+popd
 
 # fill database postgres
 pgbench -i -s 15 -h 127.0.0.1 -p ${ALPHA_PORT} postgres
@@ -87,8 +87,8 @@ wal-g --config=${TMP_CONFIG} catchup-fetch ${PGDATA_BETA} $BACKUP_NAME
 pushd ${PGDATA_BETA}
 echo "port = ${BETA_PORT}" >> postgresql.conf
 echo "hot_standby = on" >> postgresql.conf
-popd
 setup_standby_recovery ${PGDATA_BETA} ${BETA_PORT}
+popd
 
 pg_ctl -D ${PGDATA_BETA} -w start
 
@@ -114,8 +114,8 @@ wal-g --config=${TMP_CONFIG} catchup-send ${PGDATA_ALPHA} localhost:1337
 pushd ${PGDATA_BETA}
 echo "port = ${BETA_PORT}" >> postgresql.conf
 echo "hot_standby = on" >> postgresql.conf
-popd
 setup_standby_recovery ${PGDATA_BETA} ${BETA_PORT}
+popd
 
 pg_ctl -D ${PGDATA_BETA} -w start
 

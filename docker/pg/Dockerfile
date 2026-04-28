@@ -9,13 +9,12 @@ RUN apt-get update && \
     gnupg \
     ca-certificates && \
     curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/pgdg.gpg && \
-    echo "deb http://apt.postgresql.org/pub/repos/apt bionic-pgdg main 12" > /etc/apt/sources.list.d/pgdg.list && \
+    echo "deb http://apt.postgresql.org/pub/repos/apt bionic-pgdg main" > /etc/apt/sources.list.d/pgdg.list && \
     apt-get update && \
     apt-get install --yes --no-install-recommends --no-install-suggests \
     postgresql-12 \
     postgresql-contrib-12 \
     procps \
-    gnupg \
     gpg-agent \
     time \
     bc \
