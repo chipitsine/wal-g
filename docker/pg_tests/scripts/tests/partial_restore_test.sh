@@ -35,7 +35,13 @@ sleep 10
 
 /tmp/scripts/drop_pg.sh
 wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} LATEST --restore-only=first/tbl1,second
-echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" > ${PGDATA}/recovery.conf
+PG_VERSION=$(cat "${PGDATA}/PG_VERSION")
+if awk "BEGIN {exit !(${PG_VERSION} >= 12)}"; then
+  touch "${PGDATA}/recovery.signal"
+  echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" >> "${PGDATA}/postgresql.conf"
+else
+  echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" > "${PGDATA}/recovery.conf"
+fi
 
 pg_ctl -D ${PGDATA} -w start
 /tmp/scripts/wait_while_pg_not_ready.sh

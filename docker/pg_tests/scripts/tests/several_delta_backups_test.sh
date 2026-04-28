@@ -37,7 +37,13 @@ sleep 1
 
 wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} LATEST
 
-echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" > ${PGDATA}/recovery.conf
+PG_VERSION=$(cat "${PGDATA}/PG_VERSION")
+if awk "BEGIN {exit !(${PG_VERSION} >= 12)}"; then
+  touch "${PGDATA}/recovery.signal"
+  echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" >> "${PGDATA}/postgresql.conf"
+else
+  echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" > "${PGDATA}/recovery.conf"
+fi
 
 pg_ctl -D ${PGDATA} -w -t 100500 start
 sleep 10
