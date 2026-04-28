@@ -1,6 +1,6 @@
 FROM postgres:12
 
-ENV PGDATA /var/lib/postgresql/data
+ENV PGDATA /var/lib/postgresql/data12
 
 RUN apt-get update && \
     apt-get install --yes --no-install-recommends --no-install-suggests \
