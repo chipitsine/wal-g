@@ -7,7 +7,8 @@ import (
 )
 
 func NewSegBackupHandler(arguments postgres.BackupArguments) (*postgres.BackupHandler, error) {
-	bh, err := postgres.NewBackupHandler(arguments)
+	// Create the handler with GP-specific connection function for segments
+	bh, err := postgres.NewBackupHandlerWithConnect(arguments, Connect)
 	if err != nil {
 		return nil, err
 	}
