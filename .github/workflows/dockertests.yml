@@ -120,8 +120,8 @@ jobs:
           echo "Failed to fetch cached docker images. Will now exit..."
           exit 1
 
-      - name: Tune kernel for pg/gp/cloudberry tests
-        if: contains(matrix.command, 'pg_integration_test') || contains(matrix.command, 'gp_test') || contains(matrix.command, 'cloudberry_test')
+      - name: Tune kernel for pg tests
+        if: contains(matrix.command, 'pg_integration_test')
         run: sudo sysctl vm.overcommit_memory=2
 
       - name: Run test
