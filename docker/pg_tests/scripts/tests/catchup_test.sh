@@ -9,6 +9,29 @@ ALPHA_PORT=5432
 BETA_DUMP="/tmp/beta_dump"
 BETA_PORT=5433
 
+# Configure standby recovery settings in a PG-version-aware way.
+# In PG 12+, recovery.conf was removed; settings go in postgresql.conf
+# and standby mode is indicated by the presence of standby.signal.
+setup_standby_recovery() {
+  local pgdata=$1
+  local port=$2
+  local pg_version
+  pg_version=$(cat "${pgdata}/PG_VERSION")
+  if awk "BEGIN {exit !(${pg_version} >= 12)}"; then
+    touch "${pgdata}/standby.signal"
+    echo "primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'" >> "${pgdata}/postgresql.conf"
+    echo "restore_command = 'cp ${pgdata}/archive/%f %p'" >> "${pgdata}/postgresql.conf"
+    echo "promote_trigger_file = '/tmp/postgresql.trigger.${port}'" >> "${pgdata}/postgresql.conf"
+  else
+    cat > "${pgdata}/recovery.conf" << EOF
+standby_mode = 'on'
+primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
+restore_command = 'cp ${pgdata}/archive/%f %p'
+trigger_file = '/tmp/postgresql.trigger.${port}'
+EOF
+  fi
+}
+
 # init config
 . /tmp/tests/test_functions/prepare_config.sh
 prepare_config "/tmp/configs/catchup_test_config.json"
@@ -37,12 +60,7 @@ cp -r ${PGDATA_BETA} ${PGDATA_BETA_1}
 pushd ${PGDATA_BETA}
 echo "port = ${BETA_PORT}" >> postgresql.conf
 echo "hot_standby = on" >> postgresql.conf
-cat > recovery.conf << EOF
-standby_mode = 'on'
-primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
-restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
-trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
-EOF
+setup_standby_recovery ${PGDATA_BETA} ${BETA_PORT}
 pg_ctl -D ${PGDATA_BETA} -w start
 popd
 
@@ -69,12 +87,7 @@ wal-g --config=${TMP_CONFIG} catchup-fetch ${PGDATA_BETA} $BACKUP_NAME
 pushd ${PGDATA_BETA}
 echo "port = ${BETA_PORT}" >> postgresql.conf
 echo "hot_standby = on" >> postgresql.conf
-cat > recovery.conf << EOF
-standby_mode = 'on'
-primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
-restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
-trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
-EOF
+setup_standby_recovery ${PGDATA_BETA} ${BETA_PORT}
 popd
 
 pg_ctl -D ${PGDATA_BETA} -w start
@@ -101,12 +114,7 @@ wal-g --config=${TMP_CONFIG} catchup-send ${PGDATA_ALPHA} localhost:1337
 pushd ${PGDATA_BETA}
 echo "port = ${BETA_PORT}" >> postgresql.conf
 echo "hot_standby = on" >> postgresql.conf
-cat > recovery.conf << EOF
-standby_mode = 'on'
-primary_conninfo = 'host=127.0.0.1 port=${ALPHA_PORT} user=repl password=password'
-restore_command = 'cp ${PGDATA_BETA}/archive/%f %p'
-trigger_file = '/tmp/postgresql.trigger.${BETA_PORT}'
-EOF
+setup_standby_recovery ${PGDATA_BETA} ${BETA_PORT}
 popd
 
 pg_ctl -D ${PGDATA_BETA} -w start

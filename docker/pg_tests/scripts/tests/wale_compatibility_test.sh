@@ -89,7 +89,11 @@ PGHOST=/var/run/postgresql \
 WALE_FILE_PREFIX=file://localhost/tmp \
 wal-g backup-fetch ${PGDATA} LATEST
 
-echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&&\
+PG_VERSION=$(cat "${PGDATA}/PG_VERSION")
+if awk "BEGIN {exit !(${PG_VERSION} >= 12)}"; then
+  touch "${PGDATA}/recovery.signal"
+  cp /tmp/conf_files/postgresql.conf ${PGDATA}
+  echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&&\
  AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE \
 AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY \
 AWS_ENDPOINT=http://s3:9000 \
@@ -103,9 +107,25 @@ PGSSLMODE=allow \
 PGDATABASE=postgres \
 PGHOST=/var/run/postgresql \
 WALE_FILE_PREFIX=file://localhost/tmp \
-/usr/bin/wal-g wal-fetch \"%f\" \"%p\"'" > ${PGDATA}/recovery.conf
-
-cp /tmp/conf_files/postgresql.conf ${PGDATA}
+/usr/bin/wal-g wal-fetch \"%f\" \"%p\"'" >> "${PGDATA}/postgresql.conf"
+else
+  echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&&\
+ AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE \
+AWS_SECRET_ACCESS_KEY=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY \
+AWS_ENDPOINT=http://s3:9000 \
+AWS_S3_FORCE_PATH_STYLE=true \
+WALG_COMPRESSION_METHOD=brotli \
+WALG_DELTA_MAX_STEPS=6 \
+WALG_UPLOAD_CONCURRENCY=10 \
+WALG_DISK_RATE_LIMIT=41943040 \
+WALG_NETWORK_RATE_LIMIT=10485760 \
+PGSSLMODE=allow \
+PGDATABASE=postgres \
+PGHOST=/var/run/postgresql \
+WALE_FILE_PREFIX=file://localhost/tmp \
+/usr/bin/wal-g wal-fetch \"%f\" \"%p\"'" > "${PGDATA}/recovery.conf"
+  cp /tmp/conf_files/postgresql.conf ${PGDATA}
+fi
 cp /tmp/conf_files/pg_hba.conf ${PGDATA}
 cp /tmp/conf_files/pg_ident.conf ${PGDATA}
 
