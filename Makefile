@@ -255,6 +255,13 @@ redis_features:
 	make go_deps
 	cd tests_func/ && REDIS_VERSION=$(REDIS_VERSION) IMAGE_TYPE=$(IMAGE_TYPE) go test -v -count=1 -timeout 20m  --tf.test=true --tf.debug=false --tf.clean=false --tf.stop=false --tf.database=redis
 
+all_redis_features:
+	make FEATURE="aof_backup" IMAGE_TYPE="aof" REDIS_VERSION="7.0.15" redis_features
+	make FEATURE="aof_backup" IMAGE_TYPE="aof" REDIS_VERSION="7.2.4" redis_features
+	make FEATURE="rdb_backup" IMAGE_TYPE="rdb" REDIS_VERSION="6.2.4" redis_features
+	make FEATURE="rdb_backup" IMAGE_TYPE="rdb" REDIS_VERSION="7.0.15" redis_features
+	make FEATURE="rdb_backup" IMAGE_TYPE="rdb" REDIS_VERSION="7.2.4" redis_features
+
 clean_redis_features:
 	set -e
 	cd tests_func/ && REDIS_VERSION=$(REDIS_VERSION) go test -v -count=1  -timeout 5m --tf.test=false --tf.debug=false --tf.clean=true --tf.stop=true --tf.database=redis
