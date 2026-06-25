@@ -44,7 +44,7 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Warm BuildKit cache for wal-g/golang
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./docker/golang/Dockerfile
@@ -54,7 +54,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Warm BuildKit cache for wal-g/ubuntu:18.04
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./docker/ubuntu/Dockerfile
@@ -64,7 +64,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Warm BuildKit cache for wal-g/ubuntu:22.04
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           file: ./docker/ubuntu/Dockerfile_22_04
