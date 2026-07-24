@@ -11,7 +11,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  parallel:
+  parallel_base:
     uses: ./.github/workflows/dockertests.yml
     with:
       base-command-json-array: >
@@ -49,9 +49,14 @@ jobs:
         "make etcd_test",
         "make orioledb_integration_test",
         ]
+
+
+  parallel_pg10:
+    uses: ./.github/workflows/dockertests.yml
+    with:
       pg10-command-json-array: >
         [
-"make TEST=\"pg10_ready_rename_test\" pg_integration_test",
+        "make TEST=\"pg10_ready_rename_test\" pg_integration_test",
         "make TEST=\"pg10_backup_mark_impermanent_test\" pg_integration_test",
         "make TEST=\"pg10_backup_mark_permanent_test\" pg_integration_test",
         "make TEST=\"pg10_config_test\" pg_integration_test",
