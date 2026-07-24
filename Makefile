@@ -82,15 +82,20 @@ else
 	docker compose build pg18_tests_template
 endif
 
-pg_save_image: install_and_build_pg pg10_build_image pg18_build_image
+pg_save_base_images: install_and_build_pg pg18_build_image
 	mkdir -p ${CACHE_FOLDER}
-	sudo rm -rf ${CACHE_FOLDER}/*
-	docker save ${IMAGE_PG10_TESTS} > ${CACHE_FILE_PG10_TESTS}
 	docker save ${IMAGE_PG18_TESTS} > ${CACHE_FILE_PG18_TESTS}
 	docker save wal-g/ubuntu:18.04 > ${CACHE_FILE_UBUNTU_18_04}
 	docker save wal-g/ubuntu:22.04 > ${CACHE_FILE_UBUNTU_22_04}
 	docker save ${IMAGE_GOLANG}    > ${CACHE_FILE_GOLANG}
 	ls ${CACHE_FOLDER}
+
+pg_save_pg10_image: pg10_build_image
+	mkdir -p ${CACHE_FOLDER}
+	docker save ${IMAGE_PG10_TESTS} > ${CACHE_FILE_PG10_TESTS}
+	ls ${CACHE_FOLDER}
+
+pg_save_image: pg_save_base_images pg_save_pg10_image
 
 pg_integration_test: clean_compose
 	@if [ "x" = "${CACHE_FILE_PG10_TESTS}x" ]; then\
