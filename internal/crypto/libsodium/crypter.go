@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	chunkSize         = 8192
+	chunkSize         = 64 * 1024
 	libsodiumKeybytes = 32
 	minimalKeyLength  = 25
 )
