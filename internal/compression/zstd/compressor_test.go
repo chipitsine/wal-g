@@ -111,3 +111,26 @@ func TestEncoderLevelFromName(t *testing.T) {
 	_, ok = EncoderLevelFromName("nonsense")
 	assert.False(t, ok)
 }
+
+func TestEncoderReuse(t *testing.T) {
+	c := Compressor{}
+	data := []byte("repeated compression test data for pool reuse")
+
+	for i := 0; i < 50; i++ {
+		var comp bytes.Buffer
+		wc := c.NewWriter(&comp)
+		_, err := wc.Write(data)
+		require.NoError(t, err)
+		require.NoError(t, wc.Close())
+
+		// Verify decompression of pooled output
+		rdr, err := Decompressor{}.Decompress(&comp)
+		require.NoError(t, err)
+
+		decomp, err := io.ReadAll(rdr)
+		require.NoError(t, err)
+		require.NoError(t, rdr.Close())
+
+		assert.Equal(t, data, decomp)
+	}
+}
