@@ -1,6 +1,7 @@
 package ioextensions
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -50,6 +51,32 @@ func (cf OnCloseFlusher) Close() error {
 		return err
 	}
 	return cf.Flush()
+}
+
+// BufferedWriteCloser batches writes before forwarding them to the underlying
+// writer.  Close flushes the buffer before closing the underlying writer,
+// which is required for streaming writers that emit a final trailer on Close.
+type BufferedWriteCloser struct {
+	writer *bufio.Writer
+	closer io.Closer
+}
+
+func NewBufferedWriteCloser(writer io.WriteCloser, size int) *BufferedWriteCloser {
+	return &BufferedWriteCloser{
+		writer: bufio.NewWriterSize(writer, size),
+		closer: writer,
+	}
+}
+
+func (bw *BufferedWriteCloser) Write(p []byte) (int, error) {
+	return bw.writer.Write(p)
+}
+
+func (bw *BufferedWriteCloser) Close() error {
+	if err := bw.writer.Flush(); err != nil {
+		return err
+	}
+	return bw.closer.Close()
 }
 
 // ZeroReader generates a slice of zeroes. Used to pad

@@ -2,6 +2,9 @@ package crypto
 
 import "io"
 
+// OpenPGPPlaintextBufferSize batches compressed data before OpenPGP packet encoding.
+const OpenPGPPlaintextBufferSize = 256 << 10
+
 // Crypter is responsible for making cryptographical pipeline parts when needed
 type Crypter interface {
 	Name() string

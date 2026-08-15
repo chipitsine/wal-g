@@ -125,7 +125,11 @@ func (crypter *Crypter) Encrypt(writer io.Writer) (io.WriteCloser, error) {
 		return nil, errors.Wrapf(err, "opengpg encryption error")
 	}
 
-	return ioextensions.NewOnCloseFlusher(encryptedWriter, bufferedWriter), nil
+	// Batch compressed writes before they reach the OpenPGP packet writer. This
+	// reduces partial-packet handling and allocations on the hot backup path.
+	// The buffered writer flushes before the OpenPGP stream is finalized.
+	streamWriter := ioextensions.NewOnCloseFlusher(encryptedWriter, bufferedWriter)
+	return ioextensions.NewBufferedWriteCloser(streamWriter, crypto.OpenPGPPlaintextBufferSize), nil
 }
 
 // Decrypt creates decrypted reader from ordinary reader
