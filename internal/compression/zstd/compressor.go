@@ -29,7 +29,13 @@ func encoderPool(level zstd.EncoderLevel) *sync.Pool {
 	}
 	pool, _ := encoderPools.LoadOrStore(level, &sync.Pool{
 		New: func() any {
-			encoder, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(level))
+			// WithEncoderConcurrency(1): the library defaults to GOMAXPROCS internal
+			// goroutines per encoder, each holding its own ~8MB match-finding window.
+			// wal-g already parallelizes across tar parts/WAL segments via
+			// WALG_UPLOAD_DISK_CONCURRENCY, each with its own pooled encoder, so
+			// per-encoder internal concurrency only multiplies memory use without
+			// adding throughput.
+			encoder, err := zstd.NewWriter(nil, zstd.WithEncoderLevel(level), zstd.WithEncoderConcurrency(1))
 			if err != nil {
 				panic(err)
 			}
