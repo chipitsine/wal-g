@@ -402,7 +402,8 @@ link_libsodium:
 
 unlink_brotli:
 	rm -rf vendor/github.com/google/brotli/*
-	if [ -n "${USE_BROTLI}" ] ; then mv tmp/brotli/* vendor/github.com/google/brotli/; fi
+	rm -rf vendor/github.com/andybalholm/brotli/*
+	if [ -n "${USE_BROTLI}" ] ; then mv tmp/brotli/* vendor/github.com/andybalholm/brotli/ 2>/dev/null || true; fi
 	rm -rf tmp/brotli
 
 unlink_libsodium:

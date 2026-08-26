@@ -2,6 +2,7 @@
 
 rm -rf tmp/
 rm -rf vendor/github.com/google/brotli/*
+rm -rf vendor/github.com/andybalholm/brotli/*
 
 walg_containers=$(docker ps --all --format '{{.Names}}' --filter 'name=wal-g_')
 
