@@ -107,6 +107,20 @@ func (err ZstdLevelWithoutZstdMethodError) Error() string {
 	return fmt.Sprintf(tracelog.GetErrorFormatter(), err.error)
 }
 
+type BrotliLevelWithoutBrotliMethodError struct {
+	error
+}
+
+func newBrotliLevelWithoutBrotliMethodError(method string) BrotliLevelWithoutBrotliMethodError {
+	return BrotliLevelWithoutBrotliMethodError{
+		errors.Errorf("WALG_BROTLI_LEVEL is set but the compression method is '%s', not 'brotli'",
+			method)}
+}
+
+func (err BrotliLevelWithoutBrotliMethodError) Error() string {
+	return fmt.Sprintf(tracelog.GetErrorFormatter(), err.error)
+}
+
 type UnmarshallingError struct {
 	error
 }
@@ -233,6 +247,21 @@ func ConfigureCompressor() (compression.Compressor, error) {
 			return nil, newUnknownZstdLevelError(levelName)
 		}
 		compressor = zstdcompression.Compressor{Level: level}
+	}
+	if levelName := viper.GetString(conf.BrotliLevelSetting); levelName != "" {
+		const brotliAlgorithmName = "brotli"
+		if compressionMethod != brotliAlgorithmName {
+			return nil, newBrotliLevelWithoutBrotliMethodError(compressionMethod)
+		}
+		configureLevel, ok := compression.LevelConfigurators[brotliAlgorithmName]
+		if !ok {
+			return nil, newBrotliLevelWithoutBrotliMethodError(compressionMethod)
+		}
+		var err error
+		compressor, err = configureLevel(levelName)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return compressor, nil
 }

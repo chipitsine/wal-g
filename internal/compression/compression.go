@@ -11,6 +11,14 @@ type Compressor interface {
 	FileExtension() string
 }
 
+// LevelConfigurators resolves a compression method name to a function that
+// builds a Compressor from a level string (e.g. WALG_BROTLI_LEVEL,
+// WALG_ZSTD_LEVEL). Algorithms compiled behind a build tag (e.g. brotli)
+// register themselves here from their _enabled.go init(), so callers that are
+// always built (like configure.go) don't need to import build-tagged packages
+// directly.
+var LevelConfigurators = map[string]func(level string) (Compressor, error){}
+
 type Decompressor interface {
 	Decompress(src io.Reader) (io.ReadCloser, error)
 	FileExtension() string
