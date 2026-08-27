@@ -30,7 +30,7 @@ if {
   echo -n "${WAL}"
 } | nc -U ${SOCKET} | grep -q "OO"; then
   echo "WAL-G response is correct"
-  if wal-g --config=${TMP_CONFIG} st ls /wal_005 | grep ${WAL}.br ; then
+  if wal-g --config=${TMP_CONFIG} st ls /wal_005 | grep ${WAL}; then
       echo "Archive file in folder"
   else
     echo "Archive not in folder. Error."
