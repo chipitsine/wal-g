@@ -370,8 +370,8 @@ func (folder *Folder) collectVersions(allVersions *[]versionInfo, versions []typ
 func (folder *Folder) buildObjectsFromVersions(allVersions []versionInfo, deletedKeys map[string]bool) []storage.Object {
 	objects := make([]storage.Object, 0, len(allVersions))
 	for _, v := range allVersions {
-		// Skip objects where the LATEST version is a delete marker (unless showing all versions)
-		if deletedKeys[v.relativePath] && !folder.config.showAllVersions {
+		// Normal listings expose only the latest, non-deleted version of each object.
+		if !folder.config.showAllVersions && (!v.isLatest || deletedKeys[v.relativePath]) {
 			continue
 		}
 		isLatest := ""

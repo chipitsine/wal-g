@@ -141,7 +141,7 @@ func TestListFolder_VersioningEnabled_ExcludesDeletedObjects(t *testing.T) {
 	assert.NotContains(t, objectNames, "object2.txt", "Deleted object should not be in the list")
 }
 
-func TestListFolder_VersioningEnabled_IncludesAllVersionsOfNonDeletedObjects(t *testing.T) {
+func TestListFolder_VersioningEnabled_IncludesLatestVersionOfNonDeletedObject(t *testing.T) {
 	now := time.Now()
 
 	mockClient := &mockS3ClientVersioning{
@@ -174,10 +174,9 @@ func TestListFolder_VersioningEnabled_IncludesAllVersionsOfNonDeletedObjects(t *
 
 	require.NoError(t, err)
 
-	assert.Len(t, objects, 2)
-
-	for _, obj := range objects {
-		assert.Equal(t, "object1.txt", obj.GetName())
+	if assert.Len(t, objects, 1) {
+		assert.Equal(t, "object1.txt", objects[0].GetName())
+		assert.Equal(t, "v1-latest", objects[0].GetVersionID())
 	}
 }
 
