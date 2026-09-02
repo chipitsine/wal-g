@@ -12,7 +12,7 @@ import (
 
 const removeShortDescription = "Removes objects by the prefix from the specified storage"
 
-var removeAllVersions bool
+var removeAllVersions = true
 var removeVersionID string
 
 // removeCmd represents the deleteObject command
