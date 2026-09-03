@@ -798,6 +798,8 @@ func addPgIsAliveChecker(ctx context.Context, queryRunner *PgQueryRunner, errCh 
 
 	go func() {
 		err := <-pgWatcher.Err
-		errCh <- fmt.Errorf("PG alive check failed: %v", err)
+		if err != nil {
+			errCh <- fmt.Errorf("PG alive check failed: %v", err)
+		}
 	}()
 }
