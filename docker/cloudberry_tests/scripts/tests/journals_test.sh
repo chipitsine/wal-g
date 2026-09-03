@@ -12,7 +12,12 @@ source /tmp/tests/test_functions/util.sh
 
 # The names of the cluster-wide journals, oldest first. One per cluster backup.
 get_cluster_journals() {
-    wal-g --config=${TMP_CONFIG} st ls basebackups_005/ 2>&1 | grep journal_ | awk '{ print $NF }' | sort
+    wal-g --config=${TMP_CONFIG} st ls basebackups_005/ 2>&1 |
+        awk '$0 ~ /journal_/ {
+            for (i = 1; i <= NF; i++)
+                if ($i ~ /^journal_/) print $i
+        }' |
+        sort
 }
 
 get_cluster_journal_count() {
