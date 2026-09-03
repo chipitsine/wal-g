@@ -12,6 +12,7 @@ func NewPgWatcher(ctx context.Context, queryRunner *PgQueryRunner, aliveCheckInt
 	ticker := time.NewTicker(aliveCheckInterval)
 	errCh := make(chan error, 1)
 	go func() {
+		defer ticker.Stop()
 		errCh <- watchPgStatus(ctx, queryRunner, ticker)
 		close(errCh)
 	}()
@@ -25,11 +26,18 @@ type PgAliveWatcher struct {
 
 func watchPgStatus(ctx context.Context, queryRunner *PgQueryRunner, ticker *time.Ticker) error {
 	for {
-		<-ticker.C
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-ticker.C:
+		}
 		tracelog.DebugLogger.Printf("Checking if Postgres is still alive...")
 
 		err := queryRunner.Ping(ctx)
 		if err != nil {
+			if ctx.Err() != nil {
+				return nil
+			}
 			return fmt.Errorf("failed to check if the Postgres connection is alive: %v", err)
 		}
 	}
