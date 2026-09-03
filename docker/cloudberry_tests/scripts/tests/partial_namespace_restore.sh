@@ -51,19 +51,19 @@ wal-g --config=${TMP_CONFIG} backup-fetch LATEST --in-place --restore-only=db/re
 prepare_cluster
 start_cluster
 
-if [ "$(psql -p 7000 -t -c "SELECT count(*) FROM restore1.table1;" -d db -A)" != $($n * 2) ]; then
+if [ "$(psql -p 7000 -t -c "SELECT count(*) FROM restore1.table1;" -d db -A)" != $((n * 2)) ]; then
   echo "Error: restore1 namespace must be restored after partial fetch"
   exit 1
-elif [ "$(psql -p 7000 -t -c "SELECT count(*) FROM restore1.table2;" -d db -A)" != $($n * 2) ]; then
+elif [ "$(psql -p 7000 -t -c "SELECT count(*) FROM restore1.table2;" -d db -A)" != $((n * 2)) ]; then
   echo "Error: restore1 namespace must be restored after partial fetch"
   exit 1
-elif [ "$(psql -p 7000 -t -c "SELECT count(*) FROM restore2.table1;" -d db -A)" != $($n * 2) ]; then
+elif [ "$(psql -p 7000 -t -c "SELECT count(*) FROM restore2.table1;" -d db -A)" != $((n * 2)) ]; then
   echo "Error: restore2 namespace must be restored after partial fetch"
   exit 1
-elif [ "$(psql -p 7000 -t -c "SELECT count(*) FROM restore2.table2;" -d db -A)" != $($n * 2) ]; then
+elif [ "$(psql -p 7000 -t -c "SELECT count(*) FROM restore2.table2;" -d db -A)" != $((n * 2)) ]; then
   echo "Error: restore2 namespace must be restored after partial fetch"
   exit 1
-elif [ "$(psql -p 7000 -t -c "SELECT count(*) FROM partial.table2;" -d db -A)" != $($n * 2) ]; then
+elif [ "$(psql -p 7000 -t -c "SELECT count(*) FROM partial.table2;" -d db -A)" != $((n * 2)) ]; then
   echo "Error: table2 in partial namespace must be restored after partial fetch"
   exit 1
 fi
