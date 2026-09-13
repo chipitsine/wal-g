@@ -873,14 +873,12 @@ func AddConfigFlags(Cmd *cobra.Command, hiddenCfgFlagAnnotation string) {
 		}
 
 		cfgFlags.String(flagName, "", flagUsage)
-		_ = viper.BindPFlag(k, cfgFlags.Lookup(flagName))
-	}
-	cfgFlags.VisitAll(func(f *pflag.Flag) {
-		if f.Annotations == nil {
-			f.Annotations = map[string][]string{}
+		flag := cfgFlags.Lookup(flagName)
+		if flag != nil {
+			flag.Hidden = true
 		}
-		f.Annotations[hiddenCfgFlagAnnotation] = []string{"true"}
-	})
+		_ = viper.BindPFlag(k, flag)
+	}
 	Cmd.PersistentFlags().AddFlagSet(cfgFlags)
 }
 

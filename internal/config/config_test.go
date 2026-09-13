@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"github.com/wal-g/tracelog"
@@ -122,4 +124,20 @@ func resetToDefaults() {
 	internal.ConfigureSettings(config.PG)
 	config.InitConfig()
 	config.Configure()
+}
+
+func TestAddConfigFlags_NativeHidden(t *testing.T) {
+	cmd := &cobra.Command{Use: "test-cmd"}
+	config.AddConfigFlags(cmd, "")
+
+	pflags := cmd.PersistentFlags()
+	assert.True(t, pflags.HasFlags())
+
+	count := 0
+	pflags.VisitAll(func(f *pflag.Flag) {
+		count++
+		assert.True(t, f.Hidden, "flag %s should be marked hidden", f.Name)
+		assert.Nil(t, f.Annotations, "flag %s should not have annotation maps allocated", f.Name)
+	})
+	assert.Greater(t, count, 0, "expected config flags to be added")
 }

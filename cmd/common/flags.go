@@ -2,6 +2,7 @@ package common
 
 import (
 	"github.com/spf13/cobra"
+	"github.com/spf13/pflag"
 )
 
 // FlagsCmd represents the flags command
@@ -20,6 +21,20 @@ func init() {
 
 	// fix to disable the required settings check for the help subcommand
 	FlagsCmd.PersistentPreRun = func(*cobra.Command, []string) {}
+
+	defaultUsage := FlagsCmd.UsageFunc()
+	FlagsCmd.SetUsageFunc(func(cmd *cobra.Command) error {
+		unhideGlobalFlags(cmd)
+		return defaultUsage(cmd)
+	})
+}
+
+func unhideGlobalFlags(cmd *cobra.Command) {
+	if root := cmd.Root(); root != nil {
+		root.PersistentFlags().VisitAll(func(f *pflag.Flag) {
+			f.Hidden = false
+		})
+	}
 }
 
 const flagsHelpTemplate = `{{with (or .Long .Short)}}{{. | trimTrailingWhitespaces}}{{end}}
