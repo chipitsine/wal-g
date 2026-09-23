@@ -100,7 +100,7 @@ func (tarInterpreter *FileTarInterpreter) Interpret(fileReader io.Reader, fileIn
 			return errors.Wrap(err, "Interpret: chmod failed")
 		}
 	case tar.TypeLink:
-		if err := os.Link(fileInfo.Name, targetPath); err != nil {
+		if err := internal.CreateHardLinkOrCopy(fileInfo.Name, targetPath); err != nil {
 			return errors.Wrapf(err, "Interpret: failed to create hardlink %s", targetPath)
 		}
 	case tar.TypeSymlink:

@@ -47,12 +47,13 @@ jobs:
           make deps
           <#
           Some tests create hardlinks and Windows cannot create hardlinks across volumes.
-          So, set TMP to RUNNER_TEMP; ideally avoiding volume crossing like:
+          So, set TMP/TEMP to RUNNER_TEMP; ideally avoiding volume crossing like:
           https://github.com/actions/runner-images/issues/12386
           https://github.com/actions/runner-images/issues/12416
           https://github.com/actions/runner-images/issues/12744
           #>
           echo "TMP=$env:RUNNER_TEMP" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          echo "TEMP=$env:RUNNER_TEMP" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
 
       - name: Run unittests
         run: |

@@ -5,6 +5,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -40,7 +41,7 @@ func (tarInterpreter *FileTarInterpreter) Interpret(reader io.Reader, fileInfo *
 			return errors.Wrap(err, "Interpret: chmod failed")
 		}
 	case tar.TypeLink:
-		if err := os.Link(fileInfo.Name, targetPath); err != nil {
+		if err := CreateHardLinkOrCopy(fileInfo.Name, targetPath); err != nil {
 			return errors.Wrapf(err, "Interpret: failed to create hardlink %s", targetPath)
 		}
 	case tar.TypeSymlink:
@@ -60,4 +61,44 @@ func (tarInterpreter *FileTarInterpreter) interpretRegularFile(targetPath string
 	defer utility.LoggedSync(localFile, "", tarInterpreter.fsync)
 
 	return utility.WriteLocalFile(reader, header, localFile, tarInterpreter.fsync)
+}
+
+func CreateHardLinkOrCopy(sourcePath, targetPath string) error {
+	err := os.Link(sourcePath, targetPath)
+	if err == nil {
+		return nil
+	}
+	if !IsCrossVolumeHardLinkError(err) {
+		return err
+	}
+
+	sourceFile, err := os.Open(sourcePath)
+	if err != nil {
+		return err
+	}
+	defer utility.LoggedClose(sourceFile, "")
+
+	targetFile, err := os.OpenFile(targetPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o600)
+	if err != nil {
+		return err
+	}
+	defer utility.LoggedClose(targetFile, "")
+
+	_, err = io.Copy(targetFile, sourceFile)
+	if err != nil {
+		return err
+	}
+	return targetFile.Sync()
+}
+
+func IsCrossVolumeHardLinkError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "exdev") ||
+		strings.Contains(msg, "cross-device") ||
+		strings.Contains(msg, "different volume") ||
+		strings.Contains(msg, "not same device") ||
+		strings.Contains(msg, "not same file system")
 }
