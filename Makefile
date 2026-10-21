@@ -114,7 +114,7 @@ endif
 
 # PG 10 is built by pg10_build_image (bionic + wal-e), the rest by pg_build_image.
 # This list is also what CI tests: dockertests-par.yml reads it from here.
-PG_VERSIONS ?= 10 14 15 16 17 18
+PG_VERSIONS ?= 10
 
 .PHONY: print_pg_versions
 print_pg_versions:
