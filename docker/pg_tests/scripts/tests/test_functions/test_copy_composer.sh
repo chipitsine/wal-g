@@ -15,19 +15,19 @@ test_copy_composer()
 
   wal-g --config=${TMP_CONFIG} delete everything FORCE --confirm
 
-  pgbench -i -s 100
+  pg_test_time pgbench_init pgbench -i -s 100
 
-  wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
+  pg_test_time backup_push_1 wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
 
-  pgbench
+  pg_test_time pgbench_default_workload pgbench
 
   dump_all /tmp/dump1
 
-  wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
+  pg_test_time backup_push_2 wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
 
   /tmp/scripts/drop_pg.sh
 
-  wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} LATEST
+  pg_test_time backup_fetch wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} LATEST
 
   echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" | write_recovery_settings
 

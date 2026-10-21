@@ -16,17 +16,17 @@ pg_ctl -D ${PGDATA} -w start
 
 wal-g --config=${TMP_CONFIG} delete everything FORCE --confirm
 
-pgbench -i -s 5 postgres
+pg_test_time pgbench_init pgbench -i -s 5 postgres
 pgbench -T 100000000 postgres &
-wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
+pg_test_time backup_push_1 wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
 
-wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
+pg_test_time backup_push_2 wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
 
 psql -f /tmp/scripts/amcheck.sql -v "ON_ERROR_STOP=1" postgres
 
-wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
+pg_test_time backup_push_3 wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
 
-wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
+pg_test_time backup_push_4 wal-g --config=${TMP_CONFIG} backup-push ${PGDATA}
 
 pkill pgbench
 
@@ -37,7 +37,7 @@ dump_all /tmp/dump1
 sleep 1
 /tmp/scripts/drop_pg.sh
 
-wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} LATEST --reverse-unpack
+pg_test_time backup_fetch_reverse wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} LATEST --reverse-unpack
 
 echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" | write_recovery_settings
 

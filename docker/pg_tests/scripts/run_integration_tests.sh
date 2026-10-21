@@ -16,12 +16,15 @@ for i in tests/*.sh; do
 
   # A test that does not apply to this PostgreSQL version exits with 77, see
   # pg_compat.sh.
+  start_time=$(date +%s)
   set +e
   ./"$i"
   status=$?
   set -e
+  elapsed_seconds=$(($(date +%s) - start_time))
 
   set +x
+  echo "===== TIMING $i elapsed_seconds=$elapsed_seconds ====="
   case $status in
     0)  echo "===== SUCCESS $i =====" ;;
     77) echo "===== SKIPPED $i =====" ;;

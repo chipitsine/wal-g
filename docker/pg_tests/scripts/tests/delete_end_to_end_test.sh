@@ -30,14 +30,14 @@ do
     then target_storage="default"
     else target_storage="good_failover"
     fi
-    wal-g --config=${TMP_CONFIG} backup-push ${PGDATA} --target-storage ${target_storage}
+    pg_test_time backup_push_${i}_${target_storage} wal-g --config=${TMP_CONFIG} backup-push ${PGDATA} --target-storage ${target_storage}
 done
 
 wal-g --config=${TMP_CONFIG} backup-list
 
 target_backup_name=`wal-g --config=${TMP_CONFIG} backup-list | tail -n 6 | head -n 1 | cut -f 1 -d " "`
 
-wal-g --config=${TMP_CONFIG} delete before FIND_FULL $target_backup_name --confirm
+pg_test_time delete_before_find_full wal-g --config=${TMP_CONFIG} delete before FIND_FULL $target_backup_name --confirm
 
 wal-g --config=${TMP_CONFIG} backup-list
 
@@ -46,7 +46,7 @@ FIRST=`wal-g --config=${TMP_CONFIG} backup-list | head -n 2 | tail -n 1 | cut -f
 for i in ${FIRST} LATEST
 do
 /tmp/scripts/drop_pg.sh
-    wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} ${i}
+    pg_test_time backup_fetch_${i} wal-g --config=${TMP_CONFIG} backup-fetch ${PGDATA} ${i}
     echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&& /usr/bin/wal-g --config=${TMP_CONFIG} wal-fetch \"%f\" \"%p\"'" | write_recovery_settings
     pg_ctl -D ${PGDATA} -w start
     /tmp/scripts/wait_while_pg_not_ready.sh

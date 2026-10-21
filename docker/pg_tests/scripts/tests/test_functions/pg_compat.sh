@@ -140,6 +140,14 @@ compare_dumps() {
   diff "$1" "$2"
 }
 
+# pg_test_time <operation> <command> [args...]
+# Emits machine-readable GNU time metrics to the container log.
+pg_test_time() {
+  local operation="$1"
+  shift
+  /usr/bin/time -f "PG_TEST_TIMING operation=${operation} elapsed_seconds=%e user_seconds=%U system_seconds=%S max_rss_kb=%M" "$@"
+}
+
 # ---------------------------------------------------------------------------
 # Which versions a test applies to
 #

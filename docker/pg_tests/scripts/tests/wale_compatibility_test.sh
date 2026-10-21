@@ -31,7 +31,7 @@ pg_ctl -D ${PGDATA} -w start
 
 /tmp/scripts/wait_while_pg_not_ready.sh
 
-pgbench -i -s 10 postgres
+pg_test_time pgbench_init_1 pgbench -i -s 10 postgres
 dump_all /tmp/dump1
 pgbench -c 2 -T 100000000 -S &
 sleep 1
@@ -48,9 +48,9 @@ PGSSLMODE=allow \
 PGDATABASE=postgres \
 PGHOST=/var/run/postgresql \
 WALE_FILE_PREFIX=file://localhost/tmp \
-wal-e backup-push ${PGDATA}
+pg_test_time wale_backup_push_1 wal-e backup-push ${PGDATA}
 
-pgbench -i -s 10 postgres
+pg_test_time pgbench_init_2 pgbench -i -s 10 postgres
 dump_all /tmp/dump1
 pgbench -c 2 -T 100000000 -S &
 sleep 1
@@ -67,7 +67,7 @@ PGSSLMODE=allow \
 PGDATABASE=postgres \
 PGHOST=/var/run/postgresql \
 WALE_FILE_PREFIX=file://localhost/tmp \
-wal-e backup-push ${PGDATA}
+pg_test_time wale_backup_push_2 wal-e backup-push ${PGDATA}
 
 pkill -9 postgres
 
@@ -93,7 +93,7 @@ PGSSLMODE=allow \
 PGDATABASE=postgres \
 PGHOST=/var/run/postgresql \
 WALE_FILE_PREFIX=file://localhost/tmp \
-wal-g backup-fetch ${PGDATA} LATEST
+pg_test_time wale_backup_fetch wal-g backup-fetch ${PGDATA} LATEST
 
 echo "restore_command = 'echo \"WAL file restoration: %f, %p\"&&\
  AWS_ACCESS_KEY_ID=AKIAIOSFODNN7EXAMPLE \
