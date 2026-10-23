@@ -205,6 +205,8 @@ services:
     <<: *pg_test_common
     container_name: wal-g_pg${PG_MAJOR}_tests
     command: /tmp/run_integration_tests.sh
+    environment:
+      - "PG_TEST_SHARD=${PG_TEST_SHARD:-}"
 
   pg_storage_swift_test:
     image: wal-g/pg${PG_MAJOR}_tests

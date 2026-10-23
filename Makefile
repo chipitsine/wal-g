@@ -21,7 +21,12 @@ TEST := "pg_tests"
 # only one that has wal-e); 14-18 use the shared PGDG image.
 PG_MAJOR ?= 10
 export PG_MAJOR
-# pgBackRest is built from source and added to the PG test image, so it must be
+# Run only part of the PostgreSQL suite so CI can split it across jobs:
+#   PG_TEST_SHARD=<k>/<n>  the k-th of n slices of tests/*.sh
+#   PG_TEST_SHARD=extras   only the ssh, swift, pgbackrest and throttling tests
+# Empty runs everything in one go.
+PG_TEST_SHARD ?=
+export PG_TEST_SHARD# pgBackRest is built from source and added to the PG test image, so it must be
 # built on the same Ubuntu version as that image. 2.54 and later need meson,
 # which is too new for bionic, so PG 10 uses the older 2.36.
 ifeq ($(PG_MAJOR),10)
@@ -150,9 +155,11 @@ pg_integration_test: clean_compose
 		docker compose build ssh;\
 	fi
 
-	docker compose up --exit-code-from $(TEST) $(TEST)
+	@if [ "$(PG_TEST_SHARD)" != "extras" ]; then\
+		docker compose up --exit-code-from $(TEST) $(TEST) || exit $$?;\
+	fi
 	# Run tests with dependencies if we run all tests
-	@if [ "$(TEST)" = "pg_tests" ]; then\
+	@if [ "$(TEST)" = "pg_tests" ] && { [ -z "$(PG_TEST_SHARD)" ] || [ "$(PG_TEST_SHARD)" = "extras" ]; }; then\
 		docker compose build pg_pgbackrest ssh swift pg_wal_perftest_with_throttling &&\
 		docker compose up --exit-code-from pg_ssh_backup_test pg_ssh_backup_test &&\
 		docker compose up --exit-code-from pg_storage_swift_test pg_storage_swift_test &&\

@@ -23,9 +23,10 @@ env:
   GOPROXY: "https://proxy.golang.org|direct"
 
 jobs:
-  # Run the whole test suite once for each PostgreSQL version. The versions run
-  # at the same time, so more versions cost more machine time but almost no
-  # extra waiting. A manual run can test fewer versions, see pg_versions above.
+  # Run the whole test suite once for each PostgreSQL version. The versions and
+  # the slices of each suite run at the same time, so more versions cost more
+  # machine time but almost no extra waiting. A manual run can test fewer
+  # versions, see pg_versions above.
   prepare:
     name: resolve versions
     runs-on: ubuntu-latest
@@ -44,6 +45,10 @@ jobs:
           # blank. Not named PG_VERSIONS: make treats an empty environment
           # variable as set, and ?= in the Makefile would not override it.
           INPUT_PG_VERSIONS: ${{ inputs.pg_versions }}
+          # The suite is one long sequential script, so it is cut into this
+          # many slices that run as separate jobs, plus one job for the tests
+          # that need extra containers. See PG_TEST_SHARD in the Makefile.
+          PG_TEST_SHARDS: 4
         run: |
           # the Makefile owns the list of supported versions
           versions="${INPUT_PG_VERSIONS:-$(make -s print_pg_versions)}"
@@ -53,7 +58,10 @@ jobs:
           fi
 
           pg=$(for v in $versions; do
-            printf '"make PG_MAJOR=%s pg_integration_test",' "$v"
+            for s in $(seq 1 "$PG_TEST_SHARDS"); do
+              printf '"make PG_MAJOR=%s PG_TEST_SHARD=%s/%s pg_integration_test",' "$v" "$s" "$PG_TEST_SHARDS"
+            done
+            printf '"make PG_MAJOR=%s PG_TEST_SHARD=extras pg_integration_test",' "$v"
           done)
 
           pg_commands="[${pg%,}]"
