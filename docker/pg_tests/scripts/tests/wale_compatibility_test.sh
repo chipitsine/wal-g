@@ -1,4 +1,6 @@
-#!/bin/sh
+#!/bin/bash
+# bash, not dash: only bash exports "VAR=x func" assignments to the commands
+# run inside pg_test_time, and wal-e needs WALE_FILE_PREFIX.
 set -e -x
 
 . /tmp/tests/test_functions/pg_compat.sh
