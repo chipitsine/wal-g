@@ -2,6 +2,8 @@ package s3
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
 	"encoding/xml"
 	"errors"
 	"net/http"
@@ -38,6 +40,8 @@ func newRetryerFunc(cfg *Config) func() aws.Retryer {
 			if cfg.MaxThrottlingRetryDelay > 0 {
 				o.MaxBackoff = cfg.MaxThrottlingRetryDelay
 			}
+			// Must precede the SDK defaults, which treat connection errors as retryable.
+			o.Retryables = append([]retry.IsErrorRetryable{nonRetryableTLSError{}}, o.Retryables...)
 			o.Retryables = append(o.Retryables, walgRetryables{})
 			if len(cfg.RetryableErrorCodes) > 0 {
 				o.Retryables = append(o.Retryables, retry.RetryableErrorCode{Codes: cfg.RetryableErrorCodes})
@@ -78,6 +82,21 @@ func (folder *Folder) IsRetryableError(err error) bool {
 		return false
 	}
 	return storage.IsTransientIOError(err) || newRetryerFunc(folder.config)().IsErrorRetryable(err)
+}
+
+// nonRetryableTLSError fails fast on certificate verification errors, e.g. a
+// container image without a CA bundle. Retrying cannot fix them and would only
+// delay the error until the retry budget is exhausted.
+type nonRetryableTLSError struct{}
+
+func (nonRetryableTLSError) IsErrorRetryable(err error) aws.Ternary {
+	if _, ok := errors.AsType[*tls.CertificateVerificationError](err); ok {
+		return aws.FalseTernary
+	}
+	if _, ok := errors.AsType[x509.UnknownAuthorityError](err); ok {
+		return aws.FalseTernary
+	}
+	return aws.UnknownTernary
 }
 
 // walgRetryables encodes wal-g's additional retry rules as an aws/retry.IsErrorRetryable check.
