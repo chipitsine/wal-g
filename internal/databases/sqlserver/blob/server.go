@@ -12,9 +12,9 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"uuid"
 
 	"github.com/gofrs/flock"
-	"github.com/google/uuid"
 	lru "github.com/hashicorp/golang-lru/v2"
 	"github.com/wal-g/tracelog"
 	"github.com/wal-g/wal-g/internal"

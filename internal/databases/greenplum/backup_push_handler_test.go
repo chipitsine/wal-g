@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"uuid"
 
 	"github.com/apache/cloudberry-go-libs/cluster"
-	"github.com/google/uuid"
 
 	"github.com/wal-g/wal-g/internal/config"
 )

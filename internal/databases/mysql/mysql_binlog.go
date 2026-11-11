@@ -11,10 +11,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
-	"github.com/google/uuid"
 	"github.com/pkg/errors"
 	"github.com/wal-g/tracelog"
 	"github.com/wal-g/wal-g/internal"
@@ -178,11 +178,10 @@ func GetBinlogServerUUID(filename string) (string, error) {
 		if err := gtidEvent.Decode(event.RawData[replication.EventHeaderSize:]); err != nil {
 			return err
 		}
-		id, err := uuid.FromBytes(gtidEvent.SID)
-		if err != nil {
-			return err
+		if len(gtidEvent.SID) != 16 {
+			return fmt.Errorf("invalid UUID length: %d", len(gtidEvent.SID))
 		}
-		sid = id.String()
+		sid = uuid.UUID(gtidEvent.SID).String()
 		found = true
 		return fmt.Errorf("shallow file read finished")
 	})

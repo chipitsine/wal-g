@@ -2,8 +2,8 @@ package oplog
 
 import (
 	"testing"
+	"uuid"
 
-	"github.com/google/uuid"
 	"github.com/mongodb/mongo-tools/common/db"
 	"github.com/stretchr/testify/assert"
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -109,12 +109,11 @@ func TestFilterUUIDs(t *testing.T) {
 }
 
 func newUUIDBytes(t *testing.T) *bson.Binary {
-	uuidBytes, err := uuid.New().MarshalBinary()
-	assert.NoError(t, err)
+	id := uuid.New()
 
 	return &bson.Binary{
 		Subtype: 4,
-		Data:    uuidBytes,
+		Data:    id[:],
 	}
 }
 

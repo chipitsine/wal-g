@@ -8,10 +8,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"uuid"
 
 	"github.com/apache/cloudberry-go-libs/cluster"
 	"github.com/apache/cloudberry-go-libs/gplog"
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/wal-g/tracelog"
 	"github.com/wal-g/wal-g/internal"
